@@ -1,5 +1,5 @@
 // --- general includes ---
-#include <SPI.h>
+// #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -11,7 +11,7 @@
 
 // --- sprites ---
 #include <C:\Users\liann\OneDrive\Documents\Arduino\a2\racecar_sprite.c> 
-#include <C:\Users\liann\OneDrive\Documents\Arduino\a2\track.c> 
+// #include <C:\Users\liann\OneDrive\Documents\Arduino\a2\track.c> 
 
 // --- definitions ---
 #define MOTOR_PIN 10
@@ -21,7 +21,7 @@
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define TRACK_WIDTH 35
-#define TRACK_LENGTH 300
+#define TRACK_LENGTH 64
 // #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -37,7 +37,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Car* car;
 uint8_t track[TRACK_LENGTH * 2];
 int track_start_y;
-int track_dy;
+uint8_t track_dy;
 
 // SPI/accelerometer items
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
@@ -71,13 +71,13 @@ void setup() {
 
   // ** init game state
   car = create_car(display.width() / 2, 0, 0, RACECAR_WIDTH, 0, display.width(), STRAIGHT);
-  draw_static_car();  // show during boot to confirm that the get_track is what crashes and not the whole damn thing
+  // draw_static_car();  // show during boot to confirm that the get_track is what crashes and not the whole damn thing
   display.display();
   Serial.println("display car");
   get_track();
   track_dy = 1;
   track_start_y = 0;
-
+  Serial.println("Exit setup");
   // for(int i = 0; i < (TRACK_LENGTH * 2); i++) {
   //   // Serial.println(track[i]);
   // }
@@ -85,9 +85,10 @@ void setup() {
 }
 
 void loop() {
-
+  // Serial.println("loop");
   // draw graphics
   display.clearDisplay();
+  // Serial.println("cleared display");
   draw_car();
   // draw_static_car();
   // draw_track();
@@ -95,16 +96,18 @@ void loop() {
   // delay(1000); 
   EVERY_N_MILLISECONDS(5000) {
     // vibrate(250, 100);
+    // Serial.println("loop");
   }
 
 
   // get wheel acceleration and map next viewport change
   EVERY_N_MILLISECONDS(50) {
+    // Serial.println("Set vectors");
     lis.getEvent(&event);
     set_movement_vectors();
     update_x(car);
     // Serial.println(car->x);
-    // Serial.println(car->dx);
+    Serial.println(car->dx);
   }
 
 
@@ -124,13 +127,14 @@ void loop() {
 }
 
 // draws the car on the bottom middle of the screen but does not display
-void draw_static_car() {
-  // display.drawBitmap((SCREEN_WIDTH/2) - RACECAR_WIDTH, RACECAR_HEIGHT, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
-  display.drawBitmap((SCREEN_WIDTH/2) - (RACECAR_WIDTH / 2), SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
-}
+// void draw_static_car() {
+//   // display.drawBitmap((SCREEN_WIDTH/2) - RACECAR_WIDTH, RACECAR_HEIGHT, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
+//   display.drawBitmap((SCREEN_WIDTH/2) - (RACECAR_WIDTH / 2), SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
+// }
 
 // draws the car based on the car object positioning
 void draw_car() {
+  // Serial.println("draw car");
   // display.drawBitmap((SCREEN_WIDTH/2) - RACECAR_WIDTH, RACECAR_HEIGHT, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
   display.drawBitmap(car->x, SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
 }
@@ -187,10 +191,11 @@ void get_track() {
       Serial.print(i);
       Serial.println();
       Serial.print("array loc: ");
-      Serial.print(center - half_car - buffer);
+      uint8_t val = min(SCREEN_WIDTH - 1, (center - half_car - buffer) );
+      Serial.print(val);
       Serial.println();
       // Serial.println(center - half_car - buffer);
-      track[i] = center - half_car - buffer;
+      track[i] = val;
         // track[i + 1] = center + half_car + buffer;
     }
 
@@ -215,7 +220,7 @@ void get_track() {
 
     // // Generate right boundary
     for (int row = 0; row < ((TRACK_LENGTH * 2)) - 1; row+=2) {
-      uint8_t val = track[row * 2] + RACECAR_WIDTH + buffer;
+      uint8_t val = min((track[row * 2] + RACECAR_WIDTH + buffer), SCREEN_WIDTH - 1);
       Serial.print("i: ");
       Serial.print(row);
       Serial.println();
