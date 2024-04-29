@@ -3,7 +3,6 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-// #include <SPI.h>
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_Sensor.h>
 #include <FastLED.h>
@@ -17,12 +16,6 @@
 // --- definitions ---
 #define MOTOR_PIN 10
 #define BUZZER_PIN 9
-// Used for software SPI
-#define LIS3DH_CLK 5
-#define LIS3DH_MISO 4
-#define LIS3DH_MOSI 3
-// Used for hardware & software SPI
-#define LIS3DH_CS 2
 
 // constants
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -75,8 +68,6 @@ void setup() {
   }
   lis.setRange(LIS3DH_RANGE_2_G);   // 2, 4, 8 or 16 G!
   lis.setDataRate(LIS3DH_DATARATE_10_HZ);
-
-
   // Clear the buffer
   display.clearDisplay();
 
@@ -84,7 +75,7 @@ void setup() {
   car = create_car(display.width() / 2, 0, 0, RACECAR_WIDTH, 0, display.width(), STRAIGHT);
   // get_track();
   track_dy = 1;
-  track_start_y = 0;
+  // track_start_y = 0;
 }
 
 void loop() {
@@ -92,6 +83,7 @@ void loop() {
   // draw graphics
   display.clearDisplay();
   draw_car();
+  // draw_static_car();
   // draw_track();
   display.display();
   // delay(1000); 
@@ -169,7 +161,7 @@ void set_movement_vectors() {
   }
   if (millis() % 10) {
     update_dx(car, event.acceleration.x);
-    track_start_y += track_dy;
+    // track_start_y += track_dy;
     // track_start_y += dy;
     // Serial.println(event.acceleration.x);
   }
