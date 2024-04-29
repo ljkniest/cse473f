@@ -21,7 +21,7 @@
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define TRACK_WIDTH 35
-#define TRACK_LENGTH 400
+#define TRACK_LENGTH 300
 // #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -35,20 +35,18 @@ uint8_t vibration_strength = 0;
 // graphic items
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Car* car;
-// uint8_t track[TRACK_LENGTH * 2];
-// int track_start_x;
+uint8_t track[TRACK_LENGTH * 2];
 int track_start_y;
 int track_dy;
 
 // SPI/accelerometer items
-// software SPI
-// Adafruit_LIS3DH lis = Adafruit_LIS3DH(LIS3DH_CS, LIS3DH_MOSI, LIS3DH_MISO, LIS3DH_CLK);
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 volatile sensors_event_t event;
 
 void setup() {
   // ** microcontoller init
   Serial.begin(9600);
+  while (!Serial) ;
   Serial.println("online!");
 
   pinMode(MOTOR_PIN, OUTPUT);
@@ -73,9 +71,17 @@ void setup() {
 
   // ** init game state
   car = create_car(display.width() / 2, 0, 0, RACECAR_WIDTH, 0, display.width(), STRAIGHT);
-  // get_track();
+  draw_static_car();  // show during boot to confirm that the get_track is what crashes and not the whole damn thing
+  display.display();
+  Serial.println("display car");
+  get_track();
   track_dy = 1;
-  // track_start_y = 0;
+  track_start_y = 0;
+
+  // for(int i = 0; i < (TRACK_LENGTH * 2); i++) {
+  //   // Serial.println(track[i]);
+  // }
+  
 }
 
 void loop() {
@@ -98,7 +104,7 @@ void loop() {
     set_movement_vectors();
     update_x(car);
     // Serial.println(car->x);
-    Serial.println(car->dx);
+    // Serial.println(car->dx);
   }
 
 
@@ -129,18 +135,18 @@ void draw_car() {
   display.drawBitmap(car->x, SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
 }
 
-// void draw_track() {
-//     // Scale track boundaries to fit within the screen dimensions
-//     // float scaleX = (float)SCREEN_WIDTH / TRACK_WIDTH;
-//     // float scaleY = (float)SCREEN_HEIGHT / 2; // Since the track has top and bottom boundaries
-//     int array_index = track_start_y;
-//     // Draw left boundary
-//     for (int row = 0; row < SCREEN_HEIGHT; row++) {
-//         display.drawPixel(track[array_index], row, SSD1306_WHITE);
-//         display.drawPixel(track[array_index + 1], row, SSD1306_WHITE);
-//         array_index += 2;
-//     }
-// }
+void draw_track() {
+    // Scale track boundaries to fit within the screen dimensions
+    // float scaleX = (float)SCREEN_WIDTH / TRACK_WIDTH;
+    // float scaleY = (float)SCREEN_HEIGHT / 2; // Since the track has top and bottom boundaries
+    int array_index = track_start_y;
+    // Draw left boundary
+    for (int row = 0; row < SCREEN_HEIGHT; row++) {
+        display.drawPixel(track[array_index], row, SSD1306_WHITE);
+        display.drawPixel(track[array_index + 1], row, SSD1306_WHITE);
+        array_index += 2;
+    }
+}
 
 
 // turns on the vibromotor for the duration in ms listed, strength as 0-255
@@ -161,47 +167,62 @@ void set_movement_vectors() {
   }
   if (millis() % 10) {
     update_dx(car, event.acceleration.x);
-    // track_start_y += track_dy;
-    // track_start_y += dy;
     // Serial.println(event.acceleration.x);
+  }
+  if (millis() % 100) {
+    // track_start_y = min(track_start_y + track_dy, TRACK_LENGTH * 2);
   }
 }
 
 
-// void get_track() {
-//     // Initialize track boundaries
-//     // uint8_t[] track = (uint8_t *)malloc((TRACK_LENGTH) * sizeof(uint8_t));
-//     // init beginning of track in center
-//     uint8_t center = TRACK_WIDTH / 2;
-//     uint8_t half_car = RACECAR_WIDTH / 2;
-//     uint8_t buffer = 5;
-//     for (int i = 0; i < RACECAR_HEIGHT * 2; i+=2) {
-//         track[i] = center - half_car - buffer;
-//         // track[i + 1] = center + half_car + buffer;
-//     }
+void get_track() {
+  Serial.println("get_track()");
+    // Initialize track boundaries
+    // init beginning of track in center
+    uint8_t center = TRACK_WIDTH / 2;
+    uint8_t half_car = RACECAR_WIDTH / 2;
+    uint8_t buffer = 5;
+    for (int i = 0; i < RACECAR_HEIGHT * 2; i+=2) {
+      Serial.print("i: ");
+      Serial.print(i);
+      Serial.println();
+      Serial.print("array loc: ");
+      Serial.print(center - half_car - buffer);
+      Serial.println();
+      // Serial.println(center - half_car - buffer);
+      track[i] = center - half_car - buffer;
+        // track[i + 1] = center + half_car + buffer;
+    }
 
-//     // Generate left boundary
-//     uint8_t left_boundary = center - half_car - buffer; // Initial position of left boundary
-//     // uint8_t right_boundary = center + half_car + buffer;
-//     for (int row = 0; row < (TRACK_LENGTH * 2) - (RACECAR_HEIGHT * 2); row++) {
-//         if (row % 15 == 0) {
-//             // Randomly adjust left boundary every 20 pixels
-//             left_boundary += rand() % 5 - 2; // Adjust within [-2, 2]
-//             if (left_boundary < 1)
-//             {
-//               left_boundary = 1;
-//             }
-//             if (left_boundary > TRACK_WIDTH - RACECAR_WIDTH - 1)
-//             {
-//               left_boundary = TRACK_WIDTH - RACECAR_WIDTH - 1;
-//             } 
-//         }
-//         track[row * 2] = left_boundary;
-//     }
+    // // Generate left boundary
+    // uint8_t left_boundary = center - half_car - buffer; // Initial position of left boundary
+    // // uint8_t right_boundary = center + half_car + buffer;
+    // for (int row = 0; row < (TRACK_LENGTH * 2) - (RACECAR_HEIGHT * 2); row++) {
+    //     if (row % 15 == 0) {
+    //         // Randomly adjust left boundary every 15 pixels
+    //         left_boundary += rand() % 5 - 2; // Adjust within [-2, 2]
+    //         if (left_boundary < 1)
+    //         {
+    //           left_boundary = 1;
+    //         }
+    //         if (left_boundary > TRACK_WIDTH - RACECAR_WIDTH - 1)
+    //         {
+    //           left_boundary = TRACK_WIDTH - RACECAR_WIDTH - 1;
+    //         } 
+    //     }
+    //     track[row * 2] = left_boundary;
+    // }
 
-//     // Generate right boundary
-//     for (int row = 0; row < (TRACK_LENGTH * 2); row++) {
-//         track[row * 2 + 1] = track[row * 2] + RACECAR_WIDTH + buffer;
-//     }
-// }
+    // // Generate right boundary
+    for (int row = 0; row < ((TRACK_LENGTH * 2)) - 1; row+=2) {
+      uint8_t val = track[row * 2] + RACECAR_WIDTH + buffer;
+      Serial.print("i: ");
+      Serial.print(row);
+      Serial.println();
+      Serial.print("array loc: ");
+      Serial.print(val);
+      Serial.println();
+        track[(row * 2) + 1] = val;
+    }
+}
 
