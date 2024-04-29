@@ -3,7 +3,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <SPI.h>
+// #include <SPI.h>
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_Sensor.h>
 #include <FastLED.h>
@@ -27,6 +27,9 @@
 // constants
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define TRACK_WIDTH 35
+#define TRACK_LENGTH 400
+// #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
 
@@ -39,8 +42,8 @@ uint8_t vibration_strength = 0;
 // graphic items
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Car* car;
-volatile unsigned char subtrack[8192];
-int track_start_x;
+// uint8_t track[TRACK_LENGTH * 2];
+// int track_start_x;
 int track_start_y;
 int track_dy;
 
@@ -79,10 +82,9 @@ void setup() {
 
   // ** init game state
   car = create_car(display.width() / 2, 0, 0, RACECAR_WIDTH, 0, display.width(), STRAIGHT);
-  track_start_x = 0;
-  track_start_y = TRACK_HEIGHT;
+  // get_track();
   track_dy = 1;
-  get_subtrack(track_start_x, track_start_y);
+  track_start_y = 0;
 }
 
 void loop() {
@@ -90,7 +92,7 @@ void loop() {
   // draw graphics
   display.clearDisplay();
   draw_car();
-  draw_track();
+  // draw_track();
   display.display();
   // delay(1000); 
   EVERY_N_MILLISECONDS(5000) {
@@ -135,10 +137,18 @@ void draw_car() {
   display.drawBitmap(car->x, SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
 }
 
-void draw_track() {
-  // display.drawBitmap(0, 0, subtrack, SCREEN_WIDTH, SCREEN_HEIGHT, WHITE);
-  display.drawRamBitmap(0,0,SCREEN_HEIGHT,SCREEN_WIDTH,WHITE,subtrack, 8192);
-}
+// void draw_track() {
+//     // Scale track boundaries to fit within the screen dimensions
+//     // float scaleX = (float)SCREEN_WIDTH / TRACK_WIDTH;
+//     // float scaleY = (float)SCREEN_HEIGHT / 2; // Since the track has top and bottom boundaries
+//     int array_index = track_start_y;
+//     // Draw left boundary
+//     for (int row = 0; row < SCREEN_HEIGHT; row++) {
+//         display.drawPixel(track[array_index], row, SSD1306_WHITE);
+//         display.drawPixel(track[array_index + 1], row, SSD1306_WHITE);
+//         array_index += 2;
+//     }
+// }
 
 
 // turns on the vibromotor for the duration in ms listed, strength as 0-255
@@ -159,23 +169,47 @@ void set_movement_vectors() {
   }
   if (millis() % 10) {
     update_dx(car, event.acceleration.x);
-    track_start_y -= track_dy;
-    get_subtrack(track_start_y, track_start_x);
+    track_start_y += track_dy;
+    // track_start_y += dy;
     // Serial.println(event.acceleration.x);
   }
 }
 
 
-void get_subtrack(int start_x, int start_y) {
-  int bounded_x = min(start_x, TRACK_WIDTH - display.width());
-  int bounded_y = min(start_y, TRACK_HEIGHT) - display.height();
-  for (int i = 0; i < SCREEN_HEIGHT; i++) {
-    for (int j = 0; j < SCREEN_WIDTH; j++) {
-        int largeIndex = (bounded_y + j) * TRACK_WIDTH + (bounded_x + i);
-        int subIndex = j * SCREEN_WIDTH + i;
-        subtrack[subIndex] = track[largeIndex];
-    }
-  }
-}
+// void get_track() {
+//     // Initialize track boundaries
+//     // uint8_t[] track = (uint8_t *)malloc((TRACK_LENGTH) * sizeof(uint8_t));
+//     // init beginning of track in center
+//     uint8_t center = TRACK_WIDTH / 2;
+//     uint8_t half_car = RACECAR_WIDTH / 2;
+//     uint8_t buffer = 5;
+//     for (int i = 0; i < RACECAR_HEIGHT * 2; i+=2) {
+//         track[i] = center - half_car - buffer;
+//         // track[i + 1] = center + half_car + buffer;
+//     }
 
+//     // Generate left boundary
+//     uint8_t left_boundary = center - half_car - buffer; // Initial position of left boundary
+//     // uint8_t right_boundary = center + half_car + buffer;
+//     for (int row = 0; row < (TRACK_LENGTH * 2) - (RACECAR_HEIGHT * 2); row++) {
+//         if (row % 15 == 0) {
+//             // Randomly adjust left boundary every 20 pixels
+//             left_boundary += rand() % 5 - 2; // Adjust within [-2, 2]
+//             if (left_boundary < 1)
+//             {
+//               left_boundary = 1;
+//             }
+//             if (left_boundary > TRACK_WIDTH - RACECAR_WIDTH - 1)
+//             {
+//               left_boundary = TRACK_WIDTH - RACECAR_WIDTH - 1;
+//             } 
+//         }
+//         track[row * 2] = left_boundary;
+//     }
+
+//     // Generate right boundary
+//     for (int row = 0; row < (TRACK_LENGTH * 2); row++) {
+//         track[row * 2 + 1] = track[row * 2] + RACECAR_WIDTH + buffer;
+//     }
+// }
 
