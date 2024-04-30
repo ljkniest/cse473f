@@ -43,6 +43,8 @@
 #define DEBOUNCE_DELAY 50
 #define CLICKTHRESHHOLD 80
 volatile unsigned long last_click_time;
+unsigned long game_start = 0;
+int score;
 
 // vibromotor constants
 int vibration_start = 0;
@@ -56,7 +58,6 @@ Cone *cones[MAX_CONES] = {NULL};
 int track_start_y;
 volatile uint8_t cone_dy;
 volatile uint8_t game_state;
-
 uint8_t num_cones;
 
 // SPI/accelerometer items
@@ -110,6 +111,11 @@ void loop() {
       // Print text
       display.println("Welcome to");
       display.println("Asseto Course-no!");
+      display.println("Perfect score is 100%");
+      display.println("Hitting a cone is -5");
+      display.println();
+      display.println("Push steering wheel");
+      display.println("in to start.");
       display.display();
       break;
     case PLAYING:
@@ -136,6 +142,13 @@ void loop() {
       // Print text
       display.println("Game");
       display.println("Over :(");
+      display.println();
+      display.print("Your score: ");
+      display.print(score);
+      display.print("%");
+      display.println();
+      display.println("Push in wheel for");
+      display.println("main menu.");
       display.display();
       break;
   }
@@ -163,6 +176,9 @@ void loop() {
   EVERY_N_MILLISECONDS(1000) {
     Serial.println(game_state);
     // Serial.println(digitalRead(FASTER_BUTTON_PIN));
+    if (game_state == PLAYING) {
+      check_time();
+    }
   }
 
 
@@ -220,6 +236,13 @@ void set_movement_vectors() {
     poll_collision();
 }
 
+void check_time() {
+  if (millis() - game_start > GAME_LENGTH_MS) {
+    Serial.println(millis() - game_start);
+    advance_game_state();
+  }
+}
+
 
 void move_cones() {
   for (int cone_num = 0; cone_num < num_cones; cone_num++) {
@@ -270,6 +293,7 @@ void poll_collision() {
           tone(9, 440, 200);
           vibrate(200, 50);
           cones[i]->collided = 2; // set to dispatched
+          score -= 5;
       }
     }
   }
@@ -299,8 +323,8 @@ void initialize_game() {
   cone_dy = MIN_DY;
   track_start_y = 0;
   num_cones = 0;
-  // Set initial game state
-  // game_state = PLAYING;
+  score = 100;
+  game_start = millis();
 }
 
 

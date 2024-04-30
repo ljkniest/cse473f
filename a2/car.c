@@ -20,10 +20,10 @@ void update_x(Car* car) {
     int max = car->x_max;
     if (new_x < min) {
       new_x = min;
-      tone(9, 440, 100);
+      // tone(9, 440, 100);
     } else if (new_x > max) {
       new_x = max;
-      tone(9, 440, 100);
+      // tone(9, 440, 100);
     }
     // Update car's x position
     car->x = new_x;
