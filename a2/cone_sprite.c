@@ -1,5 +1,10 @@
 // 'cone', 7x7px
-
+/**
+ * Made with Marlin Bitmap Converter
+ * https://marlinfw.org/tools/u8glib/converter.html
+ *
+ * This bitmap from the file 'racecar.bmp'
+ */
 #pragma once
 
 #include <avr/pgmspace.h>
