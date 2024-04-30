@@ -18,12 +18,15 @@
 #define MOTOR_PIN 10
 #define BUZZER_PIN 9
 
+
 // constants
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define TRACK_WIDTH 35
 #define TRACK_LENGTH 64
 #define MAX_CONES 4
+#define MAX_DY 10
+#define MIN_DY 1
 // #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -78,7 +81,7 @@ void setup() {
   // draw_static_car();  // show during boot to confirm that the get_track is what crashes and not the whole damn thing
   display.display();
   Serial.println("display car");
-  cone_dy = 1;
+  cone_dy = MIN_DY;
   track_start_y = 0;
   num_cones = 0;
   Serial.println("Exit setup"); 
@@ -178,6 +181,7 @@ void set_movement_vectors() {
     // track_start_y = min(track_start_y + cone_dy, TRACK_LENGTH * 2);
     move_cones();
     gen_cones();
+    poll_collision();
   }
 }
 
@@ -236,6 +240,18 @@ void gen_cones() {
   }
 }
 
+void poll_collision() {
+  for (int i = 0; i < MAX_CONES; i++) {
+    if (cones[i] != NULL) {
+      if (cones[i]->collided == 1) {
+          tone(9, 440, 100);
+          vibrate(100, 50);
+          cones[i]->collided = 2; // set to dispatched
+      }
+    }
+  }
+}
+
 
 // Function to check collision between the car and cones
 void check_collision() {
@@ -255,8 +271,11 @@ void check_collision() {
         // You may also remove the cone from the array or change its position
         // free(cone);
         // cones[i] = NULL;
-        tone(9, 440, 100);
+          collide(cone);
       }
     }
   }
 }
+
+
+
