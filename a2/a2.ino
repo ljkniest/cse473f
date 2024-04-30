@@ -1,3 +1,4 @@
+// ChatGPT was used in the editing and debugging of this code.
 // --- general includes ---
 // #include <SPI.h>
 #include <Wire.h>
@@ -6,8 +7,7 @@
 #include <Adafruit_LIS3DH.h>
 #include <Adafruit_Sensor.h>
 #include <FastLED.h>
-// #include <C:\Users\liann\OneDrive\Documents\Arduino\a2\car.h> 
-#include "car.c"  //idk why including the .h file doesn't work
+#include "car.c"  // idk why including the .h file doesn't work
 
 // --- sprites ---
 #include <C:\Users\liann\OneDrive\Documents\Arduino\a2\racecar_sprite.c> 
@@ -18,11 +18,6 @@
 #define MOTOR_PIN 10
 #define BUZZER_PIN 9
 #define FASTER_BUTTON_PIN 2
-// typedef enum {
-//   NEW_GAME = 0,
-//   PLAYING = 1,
-//   GAME_OVER = 2
-// } GameState;
 #define NEW_GAME 0
 #define PLAYING 1
 #define GAME_OVER 2
@@ -38,7 +33,6 @@
 #define MIN_DY 1
 #define GAME_LENGTH_MS 30000
 #define MAX_CONE_COUNT 20
-// #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define DEBOUNCE_DELAY 50
@@ -81,13 +75,12 @@ void setup() {
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
-    // for(;;); // Don't proceed, loop forever
   }
 
   // ** init accelerometer
+  // inspired by https://learn.adafruit.com/adafruit-lis3dh-triple-axis-accelerometer-breakout/arduino
   if (!lis.begin(0x18)) {   // change this to 0x19 for alternative i2c address
     Serial.println("Couldnt start accelerometer");
-    // while (1) yield();
   }
   last_click_time = millis();
   lis.setRange(LIS3DH_RANGE_2_G);   // 2, 4, 8 or 16 G!
@@ -104,6 +97,7 @@ void setup() {
 }
 
 void loop() {
+  // Text boxes inspired by https://learn.adafruit.com/monochrome-oled-breakouts/arduino-library-and-examples
   switch (game_state) {
     case NEW_GAME:
       display.clearDisplay();
@@ -113,7 +107,6 @@ void loop() {
       // Set text cursor position
       display.setCursor(0, 0);
       // Print text
-      // display.println("");
       display.println("--Asseto Course-no--");
       display.println("Pass 20 cones");
       display.println("as fast as possible.");
@@ -171,7 +164,6 @@ void loop() {
 
   EVERY_N_MILLISECONDS(1000) {
     // Serial.println(game_state);
-    // Serial.println(digitalRead(FASTER_BUTTON_PIN));
     if (game_state == PLAYING) {
       check_time();
       Serial.println(cone_ctr);
@@ -235,10 +227,6 @@ void set_movement_vectors() {
 }
 
 void check_time() {
-  // if (millis() - game_start > GAME_LENGTH_MS) {
-  //   Serial.println(millis() - game_start);
-  //   advance_game_state();
-  // }
   if (cone_ctr >= MAX_CONE_COUNT) {
     advance_game_state();
   }
@@ -303,6 +291,9 @@ void poll_collision() {
 
 
 // Function to check collision between the car and cones
+// This function was written by ChatGPT 3.5 using this prompt:
+// Uow do I add collision detection to this for the cone and cars?
+// *insert code*
 void check_collision() {
   for (int i = 0; i < MAX_CONES; i++) {
     Cone* cone = cones[i];
@@ -334,8 +325,6 @@ void initialize_game() {
 
 
 void advance_game_state() {
-    // if ((millis() - last_faster_debounce) > DEBOUNCE_DELAY) {
-    // last_faster_debounce = millis();
     Serial.println("moving game state");
     game_state += 1;
     if (game_state == PLAYING) {

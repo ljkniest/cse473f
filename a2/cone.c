@@ -32,7 +32,3 @@ extern void collide(Cone* cone) {
     cone->collided = 1;
   }
 }
-
-// extern uint8_t get_collided(Cone* cone) {
-//   return cone->collided;
-// }
