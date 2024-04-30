@@ -17,7 +17,8 @@
 // --- definitions ---
 #define MOTOR_PIN 10
 #define BUZZER_PIN 9
-
+#define FASTER_PIN 2
+#define SLOWER_PIN 3
 
 // constants
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -25,12 +26,18 @@
 #define TRACK_WIDTH 35
 #define TRACK_LENGTH 64
 #define MAX_CONES 4
-#define MAX_DY 10
+#define MAX_DY 20
 #define MIN_DY 1
+#define DEBOUNCE_DELAY 50
+#define MAX_BRIGHTNESS 255
+#define LED_DURATION_MS 250
 // #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
 
+// button debounces
+volatile unsigned long last_faster_debounce = 0;
+volatile unsigned long last_slower_debounce = 0;
 
 // vibromotor constants
 int vibration_start = 0;
@@ -53,11 +60,14 @@ volatile sensors_event_t event;
 void setup() {
   // ** microcontoller init
   Serial.begin(9600);
-  // while (!Serial) ;
+  // while (!Serial);
   Serial.println("online!");
 
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
+
+  attachInterrupt(digitalPinToInterrupt(FASTER_PIN), faster, FALLING);
+  attachInterrupt(digitalPinToInterrupt(SLOWER_PIN), slower, FALLING);
 
   // ** init display
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -76,9 +86,10 @@ void setup() {
   // Clear the buffer
   display.clearDisplay();
 
+  // ** init buttons
+
   // ** init game state
-  car = create_car(display.width() / 2, 0, 0, RACECAR_WIDTH, 0, display.width());
-  // draw_static_car();  // show during boot to confirm that the get_track is what crashes and not the whole damn thing
+  car = create_car((display.width() / 2) - RACECAR_WIDTH, 0, 0, RACECAR_WIDTH, 0, display.width());
   display.display();
   Serial.println("display car");
   cone_dy = MIN_DY;
@@ -98,10 +109,9 @@ void loop() {
   // draw_track();
   display.display();
   // delay(1000); 
-  EVERY_N_MILLISECONDS(5000) {
-    // vibrate(250, 100);
-  }
-
+  // EVERY_N_MILLISECONDS(5000) {
+  //   // vibrate(250, 100);
+  // }
 
   // get wheel acceleration and map next viewport change
   EVERY_N_MILLISECONDS(50) {
@@ -110,11 +120,17 @@ void loop() {
     set_movement_vectors();
     update_x(car);
     check_collision();
-    // Serial.print("Num cones: ");
-    // Serial.print(num_cones);
-    // Serial.println();
-    // Serial.println(car->x);
-    Serial.println(car->dx);
+    // if (millis() - faster_last_fire <= LED_DURATION_MS) {
+    //   analogWrite(FASTER_LED, MAX_BRIGHTNESS);
+    // } else {
+    //   analogWrite(FASTER_LED, 0);
+    // }
+    // if (millis() - slower_last_fire <= LED_DURATION_MS) {
+    //   analogWrite(SLOWER_LED, MAX_BRIGHTNESS);
+    // } else {
+    //   analogWrite(SLOWER_LED, 0);
+    // }
+    // Serial.println(car->dx);
   }
 
 
@@ -133,16 +149,9 @@ void loop() {
   }
 }
 
-// draws the car on the bottom middle of the screen but does not display
-// void draw_static_car() {
-//   // display.drawBitmap((SCREEN_WIDTH/2) - RACECAR_WIDTH, RACECAR_HEIGHT, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
-//   display.drawBitmap((SCREEN_WIDTH/2) - (RACECAR_WIDTH / 2), SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
-// }
-
 // draws the car based on the car object positioning
 void draw_car() {
   // Serial.println("draw car");
-  // display.drawBitmap((SCREEN_WIDTH/2) - RACECAR_WIDTH, RACECAR_HEIGHT, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
   display.drawBitmap(car->x, SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
 }
 
@@ -166,13 +175,13 @@ void vibrate(int duration, uint8_t strength) {
 
 // take acceleration data and modify viewport change vector
 void set_movement_vectors() {
-  if (millis() % 10 == 0) {
-    // Serial.print("\t\tX: "); Serial.print(event.acceleration.x);
-    // Serial.print(" \tY: "); Serial.print(event.acceleration.y);
-    // Serial.print(" \tZ: "); Serial.print(event.acceleration.z);
-    // Serial.println(" m/s^2 ");
-    // Serial.println(car->x);
-  }
+  // if (millis() % 10 == 0) {
+  //   // Serial.print("\t\tX: "); Serial.print(event.acceleration.x);
+  //   // Serial.print(" \tY: "); Serial.print(event.acceleration.y);
+  //   // Serial.print(" \tZ: "); Serial.print(event.acceleration.z);
+  //   // Serial.println(" m/s^2 ");
+  //   // Serial.println(car->x);
+  // }
   if (millis() % 10) {
     update_dx(car, event.acceleration.x);
     // Serial.println(event.acceleration.x);
@@ -203,18 +212,6 @@ void move_cones() {
   }
 }
 
-// void gen_cones() {
-//   if (num_cones <= MAX_CONES) {
-//     if(millis() % 10) {
-//       int index = random(0, 3);
-//       if (cones[index] == NULL) {
-//         uint8_t x_index = (uint8_t) random(0, SCREEN_WIDTH - CONE_WIDTH);
-//         cones[index] = create_cone(x_index, 0);
-//         num_cones += 1;
-//       }
-//     }
-//   }
-// }
 void gen_cones() {
   if (num_cones < MAX_CONES) {
     if (millis() % 10) {
@@ -244,8 +241,8 @@ void poll_collision() {
   for (int i = 0; i < MAX_CONES; i++) {
     if (cones[i] != NULL) {
       if (cones[i]->collided == 1) {
-          tone(9, 440, 100);
-          vibrate(100, 50);
+          tone(9, 440, 200);
+          vibrate(200, 50);
           cones[i]->collided = 2; // set to dispatched
       }
     }
@@ -277,5 +274,25 @@ void check_collision() {
   }
 }
 
+// make cones fall faster to appear as though car has accelerated
+void faster() {
+  if ((millis() - last_faster_debounce) > DEBOUNCE_DELAY) {
+    last_faster_debounce = millis();
+    cone_dy = min(MAX_DY, cone_dy + 1);
+    tone(9, 300, 100);
+  }
+  // Serial.println(cone_dy);
+  // faster_last_fire = millis();
+}
 
+// make cones go slower to appear as though car has deccelerated
+void slower() {
+  if ((millis() - last_slower_debounce) > DEBOUNCE_DELAY) {
+    last_slower_debounce = millis();
+    cone_dy = max(MIN_DY, cone_dy - 1);
+    tone(9, 300, 100);
+  }
+  // Serial.println(cone_dy);
+  // slower_last_fire = millis();
+}
 
