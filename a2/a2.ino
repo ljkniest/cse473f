@@ -183,6 +183,7 @@ void loop() {
   }
 
   // handle vibrations
+  // written using ChatGPT 3.5
   if (vibration_duration > 0) {
     if (millis() - vibration_start >= vibration_duration) {
       digitalWrite(MOTOR_PIN, LOW);
