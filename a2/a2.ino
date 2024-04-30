@@ -17,8 +17,16 @@
 // --- definitions ---
 #define MOTOR_PIN 10
 #define BUZZER_PIN 9
-#define FASTER_PIN 2
-#define SLOWER_PIN 3
+#define FASTER_BUTTON_PIN 2
+// typedef enum {
+//   NEW_GAME = 0,
+//   PLAYING = 1,
+//   GAME_OVER = 2
+// } GameState;
+#define NEW_GAME 0
+#define PLAYING 1
+#define GAME_OVER 2
+
 
 // constants
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -28,28 +36,26 @@
 #define MAX_CONES 4
 #define MAX_DY 20
 #define MIN_DY 1
-#define DEBOUNCE_DELAY 50
-#define MAX_BRIGHTNESS 255
-#define LED_DURATION_MS 250
+#define GAME_LENGTH_MS 30000
 // #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define DEBOUNCE_DELAY 50
+volatile unsigned long last_debounce = 0;
 
-// button debounces
-volatile unsigned long last_faster_debounce = 0;
-volatile unsigned long last_slower_debounce = 0;
 
 // vibromotor constants
 int vibration_start = 0;
 int vibration_duration = 0;
 uint8_t vibration_strength = 0;
 
-// graphic items
+// graphic items + game state
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Car* car;
 Cone *cones[MAX_CONES] = {NULL};
 int track_start_y;
 volatile uint8_t cone_dy;
+volatile uint8_t game_state;
 
 uint8_t num_cones;
 
@@ -66,8 +72,10 @@ void setup() {
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
-  attachInterrupt(digitalPinToInterrupt(FASTER_PIN), faster, FALLING);
-  attachInterrupt(digitalPinToInterrupt(SLOWER_PIN), slower, FALLING);
+  attachInterrupt(digitalPinToInterrupt(FASTER_BUTTON_PIN), faster, FALLING);
+
+  // attachInterrupt(digitalPinToInterrupt(FASTER_PIN), faster, FALLING);
+  // attachInterrupt(digitalPinToInterrupt(SLOWER_PIN), slower, FALLING);
 
   // ** init display
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -86,46 +94,57 @@ void setup() {
   // Clear the buffer
   display.clearDisplay();
 
-  // ** init buttons
 
   // ** init game state
-  car = create_car((display.width() / 2) - RACECAR_WIDTH, 0, 0, RACECAR_WIDTH, 0, display.width());
-  display.display();
-  Serial.println("display car");
-  cone_dy = MIN_DY;
-  track_start_y = 0;
-  num_cones = 0;
-  Serial.println("Exit setup"); 
+  game_state = NEW_GAME;
+  // car = create_car((display.width() / 2) - RACECAR_WIDTH, 0, 0, RACECAR_WIDTH, 0, display.width());
+  // display.display();
+  // Serial.println("display car");
+  // Serial.println("Exit setup"); 
 }
 
 void loop() {
-  // Serial.println("loop");
-  // draw graphics
-  display.clearDisplay();
-  // Serial.println("cleared display");
-  draw_car();
-  draw_cones();  
-  // draw_static_car();
-  // draw_track();
-  display.display();
-  // delay(1000); 
-  // EVERY_N_MILLISECONDS(5000) {
-  //   // vibrate(250, 100);
-  // }
-
-  // get wheel acceleration and map next viewport change
-  EVERY_N_MILLISECONDS(50) {
-    // Serial.println("Set vectors");
-    lis.getEvent(&event);
-    set_movement_vectors();
-    update_x(car);
-    check_collision();
-    // Serial.println(car->dx);
+  switch (game_state) {
+    case NEW_GAME:
+      display.clearDisplay();
+      // Set text size and color
+      display.setTextSize(1);      // Normal 1:1 pixel scale
+      display.setTextColor(SSD1306_WHITE); // Draw white text
+      // Set text cursor position
+      display.setCursor(0, 0);
+      // Print text
+      display.println("Welcome to");
+      display.println("My Game!");
+      display.display();
+      break;
+    case PLAYING:
+      display.clearDisplay();
+      draw_car();
+      draw_cones();  
+      display.display();
+      // get wheel acceleration and map next viewport change
+      EVERY_N_MILLISECONDS(50) {
+        lis.getEvent(&event);
+        set_movement_vectors();
+        update_x(car);
+        check_collision();
+        // Serial.println(car->dx);
+      }
+      break;
+    case GAME_OVER:
+        display.clearDisplay();
+      // Set text size and color
+      display.setTextSize(1);      // Normal 1:1 pixel scale
+      display.setTextColor(SSD1306_WHITE); // Draw white text
+      // Set text cursor position
+      display.setCursor(0, 0);
+      // Print text
+      display.println("Game");
+      display.println("Over :(");
+      display.display();
+      break;
   }
-
-  // decide next game state
-
-
+  
   // handle vibrations
   if (vibration_duration > 0) {
     if (millis() - vibration_start >= vibration_duration) {
@@ -249,29 +268,46 @@ void check_collision() {
   }
 }
 
-// make cones fall faster to appear as though car has accelerated
+void initialize_game() {
+  //  reset game state
+  cone_dy = MIN_DY;
+  track_start_y = 0;
+  num_cones = 0;
+  // Set initial game state
+  game_state = PLAYING;
+}
+
+
+// void game_over() {
+//   // Display game over screen, score, etc.
+//   // You can add additional logic here, such as allowing the player to restart the game
+  
+//   // Reset game state or perform any other necessary cleanup
+//   // game_state = NEW_GAME;
+// }
+
+
 void faster() {
-  if ((millis() - last_faster_debounce) > DEBOUNCE_DELAY) {
-    last_faster_debounce = millis();
-    // cone_dy = (uint8_t) min(MAX_DY, cone_dy + 1);
-    // tone(9, 300, 100);
-    cone_dy += 1;
-    if (cone_dy > MAX_DY) {
-      cone_dy = MAX_DY;
+    Serial.println("interrupt");
+  if ((millis() - last_debounce) > DEBOUNCE_DELAY) {
+    // Serial.println("button");
+    last_debounce = millis();
+    game_state += 1;
+    if (game_state == PLAYING) {
+      initialize_game();
+    }
+    // if (game_state == GAME_OVER) {
+    //   for (int i = 0; i < num_cones; i++) {
+    //     if (cones[i] != NULL) {
+    //       free(cones[i]);
+    //       cones[i] = NULL;
+    //     }
+    //   }
+    // }
+    if (game_state > GAME_OVER) {
+      game_state = NEW_GAME;
     }
   }
 }
 
-// make cones go slower to appear as though car has deccelerated
-void slower() {
-  if ((millis() - last_slower_debounce) > DEBOUNCE_DELAY) {
-    last_slower_debounce = millis();
-    // cone_dy = (uint8_t) max(MIN_DY, cone_dy - 1);
-    cone_dy -= 1;
-    if (cone_dy < MIN_DY) {
-      cone_dy = MIN_DY;
-    }
-    // tone(9, 300, 100);
-  }
-}
 
