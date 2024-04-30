@@ -74,18 +74,14 @@ void setup() {
   display.clearDisplay();
 
   // ** init game state
-  car = create_car(display.width() / 2, 0, 0, RACECAR_WIDTH, 0, display.width(), STRAIGHT);
+  car = create_car(display.width() / 2, 0, 0, RACECAR_WIDTH, 0, display.width());
   // draw_static_car();  // show during boot to confirm that the get_track is what crashes and not the whole damn thing
   display.display();
   Serial.println("display car");
   cone_dy = 1;
   track_start_y = 0;
   num_cones = 0;
-  Serial.println("Exit setup");
-  // for(int i = 0; i < (TRACK_LENGTH * 2); i++) {
-  //   // Serial.println(track[i]);
-  // }
-  
+  Serial.println("Exit setup"); 
 }
 
 void loop() {
@@ -101,7 +97,6 @@ void loop() {
   // delay(1000); 
   EVERY_N_MILLISECONDS(5000) {
     // vibrate(250, 100);
-    // Serial.println("loop");
   }
 
 
@@ -111,6 +106,7 @@ void loop() {
     lis.getEvent(&event);
     set_movement_vectors();
     update_x(car);
+    check_collision();
     // Serial.print("Num cones: ");
     // Serial.print(num_cones);
     // Serial.println();
@@ -178,7 +174,7 @@ void set_movement_vectors() {
     update_dx(car, event.acceleration.x);
     // Serial.println(event.acceleration.x);
   }
-  if (millis() % 100) {
+  if (millis() % 100 == 0) {
     // track_start_y = min(track_start_y + cone_dy, TRACK_LENGTH * 2);
     move_cones();
     gen_cones();
@@ -203,14 +199,63 @@ void move_cones() {
   }
 }
 
+// void gen_cones() {
+//   if (num_cones <= MAX_CONES) {
+//     if(millis() % 10) {
+//       int index = random(0, 3);
+//       if (cones[index] == NULL) {
+//         uint8_t x_index = (uint8_t) random(0, SCREEN_WIDTH - CONE_WIDTH);
+//         cones[index] = create_cone(x_index, 0);
+//         num_cones += 1;
+//       }
+//     }
+//   }
+// }
 void gen_cones() {
-  if (num_cones <= MAX_CONES) {
-    if(millis() % 10) {
-      int index = random(0, 3);
+  if (num_cones < MAX_CONES) {
+    if (millis() % 10) {
+      int index = random(0, MAX_CONES);
       if (cones[index] == NULL) {
-        uint8_t x_index = (uint8_t) random(0, SCREEN_WIDTH - CONE_WIDTH);
-        cones[index] = create_cone(x_index, 0);
-        num_cones += 1;
+        uint8_t x_index = (uint8_t)random(0, SCREEN_WIDTH - CONE_WIDTH);
+        uint8_t y_index = 0;
+        // Check if the newly generated cone overlaps with any existing cone
+        int overlap = 0;
+        for (int i = 0; i < MAX_CONES; i++) {
+          if (cones[i] != NULL && abs(cones[i]->x - x_index) < CONE_WIDTH) {
+            overlap = 1;
+            break;
+          }
+        }
+        // Add the cone to the array only if there is no overlap
+        if (!overlap) {
+          cones[index] = create_cone(x_index, y_index);
+          num_cones++;
+        }
+      }
+    }
+  }
+}
+
+
+// Function to check collision between the car and cones
+void check_collision() {
+  for (int i = 0; i < MAX_CONES; i++) {
+    Cone* cone = cones[i];
+    if (cone != NULL) {
+      // Check if the car and cone overlap in the x-axis
+      if (car->x <= cone->x + CONE_WIDTH &&
+          car->x + RACECAR_WIDTH >= cone->x &&
+          // Check if the car and cone overlap in the y-axis
+          SCREEN_HEIGHT - RACECAR_HEIGHT - 5 <= cone->y + CONE_HEIGHT &&
+          SCREEN_HEIGHT - 5 >= cone->y) {
+        // Collision detected, handle it here (e.g., play a sound, vibrate, etc.)
+        // For example, stop the car
+        // car->dx = 0;
+        // car->turn = STRAIGHT; // Reset the car's turn state
+        // You may also remove the cone from the array or change its position
+        // free(cone);
+        // cones[i] = NULL;
+        tone(9, 440, 100);
       }
     }
   }

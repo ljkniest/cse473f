@@ -1,6 +1,6 @@
 #include "car.h"
 
-extern Car* create_car(int x, int dx, int yaw, int width, int min, int max, TURN turn) {
+extern Car* create_car(int x, int dx, int yaw, int width, int min, int max) {
     Car* car = (Car*)malloc(sizeof(Car));
     car->x = x;
     car->dx = dx;
@@ -8,7 +8,6 @@ extern Car* create_car(int x, int dx, int yaw, int width, int min, int max, TURN
     car->car_width = width;
     car->x_min = 0;
     car->x_max = max - width;
-    car->turn = turn;
     return car;
 }
 
