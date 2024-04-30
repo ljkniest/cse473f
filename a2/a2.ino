@@ -11,7 +11,8 @@
 
 // --- sprites ---
 #include <C:\Users\liann\OneDrive\Documents\Arduino\a2\racecar_sprite.c> 
-// #include <C:\Users\liann\OneDrive\Documents\Arduino\a2\track.c> 
+#include <C:\Users\liann\OneDrive\Documents\Arduino\a2\cone.c> 
+#include <C:\Users\liann\OneDrive\Documents\Arduino\a2\cone_sprite.c> 
 
 // --- definitions ---
 #define MOTOR_PIN 10
@@ -22,6 +23,7 @@
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define TRACK_WIDTH 35
 #define TRACK_LENGTH 64
+#define MAX_CONES 4
 // #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -35,9 +37,11 @@ uint8_t vibration_strength = 0;
 // graphic items
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Car* car;
-uint8_t track[TRACK_LENGTH * 2];
+Cone *cones[MAX_CONES] = {NULL};
 int track_start_y;
-uint8_t track_dy;
+uint8_t cone_dy;
+
+uint8_t num_cones;
 
 // SPI/accelerometer items
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
@@ -74,9 +78,9 @@ void setup() {
   // draw_static_car();  // show during boot to confirm that the get_track is what crashes and not the whole damn thing
   display.display();
   Serial.println("display car");
-  get_track();
-  track_dy = 1;
+  cone_dy = 1;
   track_start_y = 0;
+  num_cones = 0;
   Serial.println("Exit setup");
   // for(int i = 0; i < (TRACK_LENGTH * 2); i++) {
   //   // Serial.println(track[i]);
@@ -90,6 +94,7 @@ void loop() {
   display.clearDisplay();
   // Serial.println("cleared display");
   draw_car();
+  draw_cones();  
   // draw_static_car();
   // draw_track();
   display.display();
@@ -106,8 +111,11 @@ void loop() {
     lis.getEvent(&event);
     set_movement_vectors();
     update_x(car);
+    // Serial.print("Num cones: ");
+    // Serial.print(num_cones);
+    // Serial.println();
     // Serial.println(car->x);
-    Serial.println(car->dx);
+    // Serial.println(car->dx);
   }
 
 
@@ -139,18 +147,15 @@ void draw_car() {
   display.drawBitmap(car->x, SCREEN_HEIGHT - RACECAR_HEIGHT - 5, racecar, RACECAR_WIDTH, RACECAR_HEIGHT, WHITE);
 }
 
-void draw_track() {
-    // Scale track boundaries to fit within the screen dimensions
-    // float scaleX = (float)SCREEN_WIDTH / TRACK_WIDTH;
-    // float scaleY = (float)SCREEN_HEIGHT / 2; // Since the track has top and bottom boundaries
-    int array_index = track_start_y;
-    // Draw left boundary
-    for (int row = 0; row < SCREEN_HEIGHT; row++) {
-        display.drawPixel(track[array_index], row, SSD1306_WHITE);
-        display.drawPixel(track[array_index + 1], row, SSD1306_WHITE);
-        array_index += 2;
+void draw_cones() {
+  for ( int i = 0; i < MAX_CONES; i++) {
+    Cone* cone_ptr = cones[i];
+    if (cone_ptr != NULL) {
+      display.drawBitmap(cone_ptr->x, cone_ptr->y, cone_sprite, CONE_WIDTH, CONE_HEIGHT, WHITE);
     }
+  }
 }
+
 
 
 // turns on the vibromotor for the duration in ms listed, strength as 0-255
@@ -174,60 +179,39 @@ void set_movement_vectors() {
     // Serial.println(event.acceleration.x);
   }
   if (millis() % 100) {
-    // track_start_y = min(track_start_y + track_dy, TRACK_LENGTH * 2);
+    // track_start_y = min(track_start_y + cone_dy, TRACK_LENGTH * 2);
+    move_cones();
+    gen_cones();
   }
 }
 
 
-void get_track() {
-  Serial.println("get_track()");
-    // Initialize track boundaries
-    // init beginning of track in center
-    uint8_t center = TRACK_WIDTH / 2;
-    uint8_t half_car = RACECAR_WIDTH / 2;
-    uint8_t buffer = 5;
-    for (int i = 0; i < RACECAR_HEIGHT * 2; i+=2) {
-      Serial.print("i: ");
-      Serial.print(i);
-      Serial.println();
-      Serial.print("array loc: ");
-      uint8_t val = min(SCREEN_WIDTH - 1, (center - half_car - buffer) );
-      Serial.print(val);
-      Serial.println();
-      // Serial.println(center - half_car - buffer);
-      track[i] = val;
-        // track[i + 1] = center + half_car + buffer;
+void move_cones() {
+  for (int cone_num = 0; cone_num < num_cones; cone_num++) {
+    Cone* cone_ptr = cones[cone_num];
+    // Serial.println("checking cones");
+    if (cone_ptr != NULL) {
+      uint8_t new_y = cone_ptr->y + cone_dy;
+      if (new_y + CONE_HEIGHT > SCREEN_HEIGHT) {
+        free(cone_ptr);
+        cones[cone_num] = NULL;
+        num_cones--;
+      } else {
+        update_coords(cone_ptr, cone_ptr->x, new_y);
+      }
     }
-
-    // // Generate left boundary
-    // uint8_t left_boundary = center - half_car - buffer; // Initial position of left boundary
-    // // uint8_t right_boundary = center + half_car + buffer;
-    // for (int row = 0; row < (TRACK_LENGTH * 2) - (RACECAR_HEIGHT * 2); row++) {
-    //     if (row % 15 == 0) {
-    //         // Randomly adjust left boundary every 15 pixels
-    //         left_boundary += rand() % 5 - 2; // Adjust within [-2, 2]
-    //         if (left_boundary < 1)
-    //         {
-    //           left_boundary = 1;
-    //         }
-    //         if (left_boundary > TRACK_WIDTH - RACECAR_WIDTH - 1)
-    //         {
-    //           left_boundary = TRACK_WIDTH - RACECAR_WIDTH - 1;
-    //         } 
-    //     }
-    //     track[row * 2] = left_boundary;
-    // }
-
-    // // Generate right boundary
-    for (int row = 0; row < ((TRACK_LENGTH * 2)) - 1; row+=2) {
-      uint8_t val = min((track[row * 2] + RACECAR_WIDTH + buffer), SCREEN_WIDTH - 1);
-      Serial.print("i: ");
-      Serial.print(row);
-      Serial.println();
-      Serial.print("array loc: ");
-      Serial.print(val);
-      Serial.println();
-        track[(row * 2) + 1] = val;
-    }
+  }
 }
 
+void gen_cones() {
+  if (num_cones <= MAX_CONES) {
+    if(millis() % 10) {
+      int index = random(0, 3);
+      if (cones[index] == NULL) {
+        uint8_t x_index = (uint8_t) random(0, SCREEN_WIDTH - CONE_WIDTH);
+        cones[index] = create_cone(x_index, 0);
+        num_cones += 1;
+      }
+    }
+  }
+}
