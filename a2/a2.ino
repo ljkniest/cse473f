@@ -41,19 +41,8 @@
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define DEBOUNCE_DELAY 50
-int buttonState;            // the current reading from the input pin
-int lastButtonState = LOW;  // the previous reading from the input pin
-
-// the following variables are unsigned longs because the time, measured in
-// milliseconds, will quickly become a bigger number than can be stored in an int.
-unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
-
-
 #define CLICKTHRESHHOLD 80
-// volatile unsigned long last_faster_debounce = 0;
 volatile unsigned long last_click_time;
-// bool click_flag = false;
 
 // vibromotor constants
 int vibration_start = 0;
@@ -82,12 +71,6 @@ void setup() {
 
   pinMode(MOTOR_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
-  // pinMode(FASTER_BUTTON_PIN, INPUT);
-  pinMode(FASTER_BUTTON_PIN, INPUT_PULLUP);
-  // attachInterrupt(digitalPinToInterrupt(FASTER_BUTTON_PIN), faster, FALLING);
-
-  // attachInterrupt(digitalPinToInterrupt(FASTER_PIN), faster, FALLING);
-  // attachInterrupt(digitalPinToInterrupt(SLOWER_PIN), slower, FALLING);
 
   // ** init display
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
@@ -108,13 +91,11 @@ void setup() {
   // Clear the buffer
   display.clearDisplay();
 
+  // get car ready
+  car = create_car((display.width() / 2) - 5, 0, 0, RACECAR_WIDTH, 0, display.width());
 
   // ** init game state
   game_state = NEW_GAME;
-  // car = create_car((display.width() / 2) - RACECAR_WIDTH, 0, 0, RACECAR_WIDTH, 0, display.width());
-  // display.display();
-  // Serial.println("display car");
-  // Serial.println("Exit setup"); 
 }
 
 void loop() {
@@ -159,43 +140,33 @@ void loop() {
       break;
   }
 
+  EVERY_N_MILLISECONDS(10) {
+    if (game_state == PLAYING) {
+      display.clearDisplay();
+      draw_car();
+      draw_cones();  
+      display.display();
+    }
+  }
+
+        // get wheel acceleration and map next viewport change
+  EVERY_N_MILLISECONDS(50) {
+    if (game_state == PLAYING) {
+      lis.getEvent(&event);
+      set_movement_vectors();
+      update_x(car);
+      check_collision();
+      // Serial.println(car->dx);
+    }
+  }
+
   EVERY_N_MILLISECONDS(1000) {
     Serial.println(game_state);
     // Serial.println(digitalRead(FASTER_BUTTON_PIN));
   }
-  //   // read the state of the switch into a local variable:
-  // int reading = digitalRead(FASTER_BUTTON_PIN);
-
-  // // check to see if you just pressed the button
-  // // (i.e. the input went from LOW to HIGH), and you've waited long enough
-  // // since the last press to ignore any noise:
-
-  // // If the switch changed, due to noise or pressing:
-  // if (reading != lastButtonState) {
-  //   // reset the debouncing timer
-  //   lastDebounceTime = millis();
-  // }
-
-  // if ((millis() - lastDebounceTime) > debounceDelay) {
-  //   // whatever the reading is at, it's been there for longer than the debounce
-  //   // delay, so take it as the actual current state:
-
-  //   // if the button state has changed:
-  //   if (reading != buttonState) {
-  //     buttonState = reading;
-
-  //     // only toggle the LED if the new button state is HIGH
-  //     if (buttonState == HIGH) {
-  //       advance_game_state();
-  //     }
-  //   }
-  // }
 
 
   EVERY_N_MILLISECONDS(500) {
-    // if (digitalRead(FASTER_BUTTON_PIN) == LOW) {
-    //   advance_game_state();
-    // Serial.println("Checking click state");
     uint8_t click = lis.getClick();
     if (click & 0x10) {
       Serial.println("Click");
@@ -205,61 +176,6 @@ void loop() {
       }
     }
   }
-  // uint8_t click = lis.getClick();
-  //   if (click & 0x10) {
-  //     Serial.println("click");
-  //     if (millis() - last_click_time < DEBOUNCE_DELAY) {
-  //       advance_game_state();
-  //       last_click_time = millis();
-  //     }
-  //   }
-  // }
-  
-  // // handle button
-  // // Read the state of the button
-  // int reading = digitalRead(FASTER_BUTTON_PIN);
-  // // Serial.println(reading);
-  // // Check if the button state has changed
-  // if (reading != lastButtonState) {
-  //   // Reset the debounce timer
-  //   lastDebounceTime = millis();
-  // }
-  // // Check if the button state has remained stable for the debounce delay
-  // if ((millis() - lastDebounceTime) > debounceDelay) {
-  //   // If the button state has changed, update the state variable
-  //   if (reading != buttonState) {
-  //     buttonState = reading;
-  //     // If the button state is LOW, it's pressed
-  //     if (buttonState == LOW) {
-  //       // Button is pressed, do something
-  //       // For example, toggle an LED
-  //       // digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-  //       advance_game_state();
-  //     }
-  //   }
-  // }
-
-//   // // Save the current button state for comparison in the next iteration
-//   // lastButtonState = reading;
-//   uint8_t click = lis.getClick();
-//   // if (click & 0x10) {
-//   //   advance_game_state();
-//   // }
-// if (click & 0x10) {
-//   if (!click_flag && millis() - last_click_time > DEBOUNCE_DELAY) {
-//     click_flag = true;
-//     last_click_time = millis();
-//   }
-// }
-
-//   if (click_flag) {
-//   advance_game_state();
-//   click_flag = false;
-//   }
-  
-  // if(debounce()) {
-  //   advance_game_state();
-  // }
 
   // handle vibrations
   if (vibration_duration > 0) {
@@ -298,16 +214,10 @@ void vibrate(int duration, uint8_t strength) {
 
 // take acceleration data and modify viewport change vector
 void set_movement_vectors() {
-  // if (millis() % 10 == 0) {
     update_dx(car, event.acceleration.x);
-    // Serial.println(event.acceleration.x);
-  // }
-  // if (millis() % 50 == 0) {
-    // track_start_y = min(track_start_y + cone_dy, TRACK_LENGTH * 2);
     move_cones();
     gen_cones();
     poll_collision();
-  // }
 }
 
 
@@ -390,17 +300,8 @@ void initialize_game() {
   track_start_y = 0;
   num_cones = 0;
   // Set initial game state
-  game_state = PLAYING;
+  // game_state = PLAYING;
 }
-
-
-// void game_over() {
-//   // Display game over screen, score, etc.
-//   // You can add additional logic here, such as allowing the player to restart the game
-  
-//   // Reset game state or perform any other necessary cleanup
-//   // game_state = NEW_GAME;
-// }
 
 
 void advance_game_state() {
