@@ -50,7 +50,7 @@ volatile sensors_event_t event;
 void setup() {
   // ** microcontoller init
   Serial.begin(9600);
-  while (!Serial) ;
+  // while (!Serial) ;
   Serial.println("online!");
 
   pinMode(MOTOR_PIN, OUTPUT);
@@ -111,7 +111,7 @@ void loop() {
     // Serial.print(num_cones);
     // Serial.println();
     // Serial.println(car->x);
-    // Serial.println(car->dx);
+    Serial.println(car->dx);
   }
 
 
@@ -174,7 +174,7 @@ void set_movement_vectors() {
     update_dx(car, event.acceleration.x);
     // Serial.println(event.acceleration.x);
   }
-  if (millis() % 100 == 0) {
+  if (millis() % 100) {
     // track_start_y = min(track_start_y + cone_dy, TRACK_LENGTH * 2);
     move_cones();
     gen_cones();
