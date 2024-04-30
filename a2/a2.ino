@@ -34,9 +34,10 @@
 #define TRACK_WIDTH 35
 #define TRACK_LENGTH 64
 #define MAX_CONES 4
-#define MAX_DY 20
+#define MAX_DY 10
 #define MIN_DY 1
 #define GAME_LENGTH_MS 30000
+#define MAX_CONE_COUNT 20
 // #define TRACK_LENGTH_PIXELS 800 // divide by two for real length
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
@@ -44,6 +45,9 @@
 #define CLICKTHRESHHOLD 80
 volatile unsigned long last_click_time;
 unsigned long game_start = 0;
+unsigned long game_time = 0;
+int cone_ctr;
+int cones_hit;
 int score;
 
 // vibromotor constants
@@ -109,28 +113,17 @@ void loop() {
       // Set text cursor position
       display.setCursor(0, 0);
       // Print text
-      display.println("Welcome to");
-      display.println("Asseto Course-no!");
-      display.println("Perfect score is 100%");
-      display.println("Hitting a cone is -5");
+      // display.println("");
+      display.println("--Asseto Course-no--");
+      display.println("Pass 20 cones");
+      display.println("as fast as possible.");
+      display.println("Hitting a cone is +5 seconds.");
       display.println();
       display.println("Push steering wheel");
       display.println("in to start.");
       display.display();
       break;
     case PLAYING:
-      // display.clearDisplay();
-      // draw_car();
-      // draw_cones();  
-      // display.display();
-      // // get wheel acceleration and map next viewport change
-      // EVERY_N_MILLISECONDS(50) {
-      //   lis.getEvent(&event);
-      //   set_movement_vectors();
-      //   update_x(car);
-      //   check_collision();
-      //   // Serial.println(car->dx);
-      // }
       break;
     case GAME_OVER:
         display.clearDisplay();
@@ -140,12 +133,15 @@ void loop() {
       // Set text cursor position
       display.setCursor(0, 0);
       // Print text
-      display.println("Game");
-      display.println("Over :(");
+      display.println("Finish!");
+      // display.println("Over :(");
       display.println();
-      display.print("Your score: ");
-      display.print(score);
-      display.print("%");
+      display.println("Your final time: ");
+      display.print((game_time) / 1000 + (5 * cones_hit));
+      display.print(" seconds");
+      display.println();
+      display.print("Cones hit: ");
+      display.print(cones_hit);
       display.println();
       display.println("Push in wheel for");
       display.println("main menu.");
@@ -174,10 +170,11 @@ void loop() {
   }
 
   EVERY_N_MILLISECONDS(1000) {
-    Serial.println(game_state);
+    // Serial.println(game_state);
     // Serial.println(digitalRead(FASTER_BUTTON_PIN));
     if (game_state == PLAYING) {
       check_time();
+      Serial.println(cone_ctr);
     }
   }
 
@@ -231,14 +228,18 @@ void vibrate(int duration, uint8_t strength) {
 // take acceleration data and modify viewport change vector
 void set_movement_vectors() {
     update_dx(car, event.acceleration.x);
+    update_dy(event.acceleration.y);
     move_cones();
     gen_cones();
     poll_collision();
 }
 
 void check_time() {
-  if (millis() - game_start > GAME_LENGTH_MS) {
-    Serial.println(millis() - game_start);
+  // if (millis() - game_start > GAME_LENGTH_MS) {
+  //   Serial.println(millis() - game_start);
+  //   advance_game_state();
+  // }
+  if (cone_ctr >= MAX_CONE_COUNT) {
     advance_game_state();
   }
 }
@@ -280,6 +281,7 @@ void gen_cones() {
         if (!overlap) {
           cones[index] = create_cone(x_index, y_index);
           num_cones++;
+          cone_ctr++;
         }
       }
     }
@@ -293,7 +295,7 @@ void poll_collision() {
           tone(9, 440, 200);
           vibrate(100, 50);
           cones[i]->collided = 2; // set to dispatched
-          score -= 5;
+          cones_hit++;
       }
     }
   }
@@ -313,6 +315,7 @@ void check_collision() {
           SCREEN_HEIGHT - 5 >= cone->y) {
           // cone collision!
           collide(cone);
+          // cones_hit++;
       }
     }
   }
@@ -323,7 +326,9 @@ void initialize_game() {
   cone_dy = MIN_DY;
   track_start_y = 0;
   num_cones = 0;
-  score = 100;
+  // score = 100;
+  cones_hit = 0;
+  cone_ctr = 0;
   game_start = millis();
 }
 
@@ -337,6 +342,7 @@ void advance_game_state() {
       initialize_game();
     }
     if (game_state == GAME_OVER) {
+      game_time = millis() - game_start;
       for (int i = 0; i < num_cones; i++) {
         if (cones[i] != NULL) {
           free(cones[i]);
@@ -350,4 +356,15 @@ void advance_game_state() {
   // }
 }
 
+
+void update_dy(float accelerometer) {
+  cone_dy += (int) (accelerometer * 0.2);
+  if (cone_dy > MAX_DY) {
+    cone_dy = MAX_DY;
+  }
+  if (cone_dy < MIN_DY) {
+    cone_dy = MIN_DY;
+  }
+  // Serial.println(accelerometer * 0.1);
+}
 
