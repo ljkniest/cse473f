@@ -49,7 +49,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Car* car;
 Cone *cones[MAX_CONES] = {NULL};
 int track_start_y;
-uint8_t cone_dy;
+volatile uint8_t cone_dy;
 
 uint8_t num_cones;
 
@@ -120,19 +120,8 @@ void loop() {
     set_movement_vectors();
     update_x(car);
     check_collision();
-    // if (millis() - faster_last_fire <= LED_DURATION_MS) {
-    //   analogWrite(FASTER_LED, MAX_BRIGHTNESS);
-    // } else {
-    //   analogWrite(FASTER_LED, 0);
-    // }
-    // if (millis() - slower_last_fire <= LED_DURATION_MS) {
-    //   analogWrite(SLOWER_LED, MAX_BRIGHTNESS);
-    // } else {
-    //   analogWrite(SLOWER_LED, 0);
-    // }
     // Serial.println(car->dx);
   }
-
 
   // decide next game state
 
@@ -165,7 +154,6 @@ void draw_cones() {
 }
 
 
-
 // turns on the vibromotor for the duration in ms listed, strength as 0-255
 void vibrate(int duration, uint8_t strength) {
   vibration_start = millis();
@@ -176,22 +164,15 @@ void vibrate(int duration, uint8_t strength) {
 // take acceleration data and modify viewport change vector
 void set_movement_vectors() {
   // if (millis() % 10 == 0) {
-  //   // Serial.print("\t\tX: "); Serial.print(event.acceleration.x);
-  //   // Serial.print(" \tY: "); Serial.print(event.acceleration.y);
-  //   // Serial.print(" \tZ: "); Serial.print(event.acceleration.z);
-  //   // Serial.println(" m/s^2 ");
-  //   // Serial.println(car->x);
-  // }
-  if (millis() % 10) {
     update_dx(car, event.acceleration.x);
     // Serial.println(event.acceleration.x);
-  }
-  if (millis() % 100) {
+  // }
+  // if (millis() % 50 == 0) {
     // track_start_y = min(track_start_y + cone_dy, TRACK_LENGTH * 2);
     move_cones();
     gen_cones();
     poll_collision();
-  }
+  // }
 }
 
 
@@ -261,13 +242,7 @@ void check_collision() {
           // Check if the car and cone overlap in the y-axis
           SCREEN_HEIGHT - RACECAR_HEIGHT - 5 <= cone->y + CONE_HEIGHT &&
           SCREEN_HEIGHT - 5 >= cone->y) {
-        // Collision detected, handle it here (e.g., play a sound, vibrate, etc.)
-        // For example, stop the car
-        // car->dx = 0;
-        // car->turn = STRAIGHT; // Reset the car's turn state
-        // You may also remove the cone from the array or change its position
-        // free(cone);
-        // cones[i] = NULL;
+          // cone collision!
           collide(cone);
       }
     }
@@ -278,21 +253,25 @@ void check_collision() {
 void faster() {
   if ((millis() - last_faster_debounce) > DEBOUNCE_DELAY) {
     last_faster_debounce = millis();
-    cone_dy = min(MAX_DY, cone_dy + 1);
-    tone(9, 300, 100);
+    // cone_dy = (uint8_t) min(MAX_DY, cone_dy + 1);
+    // tone(9, 300, 100);
+    cone_dy += 1;
+    if (cone_dy > MAX_DY) {
+      cone_dy = MAX_DY;
+    }
   }
-  // Serial.println(cone_dy);
-  // faster_last_fire = millis();
 }
 
 // make cones go slower to appear as though car has deccelerated
 void slower() {
   if ((millis() - last_slower_debounce) > DEBOUNCE_DELAY) {
     last_slower_debounce = millis();
-    cone_dy = max(MIN_DY, cone_dy - 1);
-    tone(9, 300, 100);
+    // cone_dy = (uint8_t) max(MIN_DY, cone_dy - 1);
+    cone_dy -= 1;
+    if (cone_dy < MIN_DY) {
+      cone_dy = MIN_DY;
+    }
+    // tone(9, 300, 100);
   }
-  // Serial.println(cone_dy);
-  // slower_last_fire = millis();
 }
 
