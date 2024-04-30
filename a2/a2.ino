@@ -291,7 +291,7 @@ void poll_collision() {
     if (cones[i] != NULL) {
       if (cones[i]->collided == 1) {
           tone(9, 440, 200);
-          vibrate(200, 50);
+          vibrate(100, 50);
           cones[i]->collided = 2; // set to dispatched
           score -= 5;
       }
