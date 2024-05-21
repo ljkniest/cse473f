@@ -42,10 +42,10 @@ const poseNetOptions = {
   architecture: 'MobileNetV1',
   imageScaleFactor: 0.3,
   outputStride: 16,
-  flipHorizontal: true,
+  flipHorizontal: false,
   minConfidence: 0.5,
   maxPoseDetections: 5,
-  scoreThreshold: 0.5,
+  scoreThreshold: 0.8,
   nmsRadius: 20,
   // detectionType: 'multiple',
   detectionType: 'single',
@@ -64,13 +64,7 @@ function setup() {
   createCanvas(640, 480);
   scoreHtmlMsg = createP("test");
   score = 0;
-  // console.log("handsup: " + JSON.stringify(generatePoseAngles(handsup)));
-  // console.log("handsdown: " + JSON.stringify(generatePoseAngles(handsdown)));
 }
-
-
-//handsup: {"leftElbowAngle":-72.63918909170312,"rightElbowAngle":-112.21609317291504,"leftHipAngle":90.34881337944101,"rightHipAngle":90.97220672165206} sketch.js:528:11
-//handsdown: {"leftElbowAngle":61.76252831580433,"rightElbowAngle":123.50516622898327,"leftHipAngle":93.23373830456356,"rightHipAngle":89.06335303251583} sketch.js:529:11
 
 /**
  * Callback function called by ml5.js PoseNet when the PoseNet model is ready
@@ -106,8 +100,7 @@ function draw() {
   }
 
   // Iterate through all poses and print them out
-  if(currentPoses){
-    // scoreHtmlMsg.html((JSON.stringify(generatePoseAngles(currentPoses[0].pose))));
+  if(currentPoses) {
     for (let i = 0; i < currentPoses.length; i++) {
       drawPose(currentPoses[i], i);
     }
@@ -223,7 +216,7 @@ function drawKeypoints() {
       const keypoint = pose.keypoints[j];
       // Only draw an ellipse is the pose probability is bigger than 0.2
       if (keypoint.score > 0.2) {
-        fill(255, 0, 0, 150);
+        fill(255, 0, 0);
         noStroke();
         ellipse(keypoint.position.x, keypoint.position.y, 10, 10);
       }
@@ -240,45 +233,9 @@ function drawSkeleton() {
     for (let j = 0; j < skeleton.length; j += 1) {
       const partA = skeleton[j][0];
       const partB = skeleton[j][1];
-      stroke(255, 0, 0, 50);
+      stroke(255, 0, 0);
       line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
     }
-  }
-}
-
-function generatePoseAngles(keypoints) {
-  // Find keypoints for elbows, hips, and shoulders
-  const leftElbow = keypoints["leftElbow"];
-  const rightElbow = keypoints["rightElbow"];
-  const leftKnee = keypoints["leftKnee"];
-  const rightKnee = keypoints["rightKnee"];
-  const leftShoulder = keypoints["leftShoulder"];
-  const rightShoulder = keypoints["rightShoulder"];
-  const leftWrist = keypoints["leftWrist"];
-  const rightWrist = keypoints["rightWrist"];
-
-  // Check if all required keypoints are present
-  if (leftElbow && rightElbow && leftKnee && rightKnee && leftShoulder && rightShoulder && leftWrist && rightWrist) {
-    // Calculate angles for elbows
-    const leftElbowAngle = Math.atan2(leftWrist.y - leftShoulder.y, leftWrist.x - leftShoulder.x);
-    const rightElbowAngle = Math.atan2(rightWrist.y - rightShoulder.y, rightWrist.x - rightShoulder.x);
-
-    // Calculate angles for hips
-    const leftHipAngle = Math.atan2(leftKnee.y - leftShoulder.y, leftKnee.x - leftShoulder.x);
-    const rightHipAngle = Math.atan2(rightKnee.y - rightShoulder.y, rightKnee.x - rightShoulder.x);
-
-    // Convert angles to degrees
-    const degrees = angle => angle * (180 / Math.PI);
-
-    return {
-      leftElbowAngle: degrees(leftElbowAngle),
-      rightElbowAngle: degrees(rightElbowAngle),
-      leftHipAngle: degrees(leftHipAngle),
-      rightHipAngle: degrees(rightHipAngle)
-    };
-  } else {
-    // Handle the case where any of the required keypoints are missing
-    return null;
   }
 }
 
