@@ -17,333 +17,6 @@
 // const width = 640;
 // const height = 480;
 
-let video;
-let constraints = {
-  video: {
-    mandatory: {
-      minWidth: 640,
-      minHeight: 480
-    },
-    optional: [{ maxFrameRate: 10 }]
-  },
-  audio: false
-};
-
-// game state
-let scoreHtmlMsg;
-const scoreStub = "Current score: ";
-let score;
-
-// pose net variables
-let poseNet;
-let currentPoses;
-let poseNetModelReady;
-const poseNetOptions = {
-  architecture: 'MobileNetV1',
-  imageScaleFactor: 0.3,
-  outputStride: 16,
-  flipHorizontal: false,
-  minConfidence: 0.5,
-  maxPoseDetections: 5,
-  scoreThreshold: 0.8,
-  nmsRadius: 20,
-  detectionType: 'multiple',
-  inputResolution: 513,
-  multiplier: 0.75,
-  quantBytes: 2,
-};
-
-function setup() {
-  poseNetModelReady = false;
-  // PoseNet and camera init
-  video = createCapture(constraints);
-  video.hide();
-  poseNet = ml5.poseNet(video, poseNetOptions, onPoseNetModelReady);
-  poseNet.on('pose', onPoseDetected);
-  createCanvas(640, 480);
-  scoreHtmlMsg = createP("test");
-  score = 0;
-  console.log(generatePoseRatios(handsup).toString());
-  console.log(generatePoseRatios(handsdown).toString());
-}
-
-/**
- * Callback function called by ml5.js PoseNet when the PoseNet model is ready
- * Will be called once and only once
- */
-function onPoseNetModelReady() {
-  print("The PoseNet model is ready...");
-  poseNetModelReady = true;
-  scoreHtmlMsg.html("new pose");
-}
-
-/**
- * Callback function called by ml5.js PosetNet when a pose has been detected
- */
-function onPoseDetected(poses) {
-  currentPoses = poses;
-  score += 1;
-  scoreHtmlMsg.html(scoreStub + score);
-}
-
-function draw() {
-  image(video, 0, 0, width, height);
-
-  if(!poseNetModelReady){
-    background(100);
-    push();
-    textSize(32);
-    textAlign(CENTER);
-    fill(255);
-    noStroke();
-    text("Waiting for PoseNet model to load...", width/2, height/2);
-    pop();
-  }
-
-  // Iterate through all poses and print them out
-  if(currentPoses){
-    for (let i = 0; i < currentPoses.length; i++) {
-      drawPose(currentPoses[i], i);
-    }
-  }
-}
-
-function drawPose(pose, poseIndex){
-  // Draw skeleton
-  const skeletonColor = color(255, 255, 255, 128);
-  stroke(skeletonColor); 
-  strokeWeight(2);
-  const skeleton = pose.skeleton;
-  for (let j = 0; j < skeleton.length; j += 1) {
-    const partA = skeleton[j][0];
-    const partB = skeleton[j][1];
-    line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
-  }
-  
-  // Draw keypoints with text
-  const kpFillColor = color(255, 255, 255, 200);
-  const textColor = color(255, 255, 255, 230);
-  const kpOutlineColor = color(0, 0, 0, 150);
-  strokeWeight(1);
-
-  const keypoints = pose.pose.keypoints;
-  const kpSize = 10;
-  const kpTextMargin = 2;
-  let xPoseLeftMost = width;
-  let xPoseRightMost = -1;
-  let yPoseTop = height;
-  let yPoseBottom = -1;
-  for (let j = 0; j < keypoints.length; j += 1) {
-    // A keypoint is an object describing a body part (like rightArm or leftShoulder)
-    const kp = keypoints[j];
-
-    // check for maximum extents
-    if(xPoseLeftMost > kp.position.x){
-      xPoseLeftMost = kp.position.x;
-    }else if(xPoseRightMost < kp.position.x){
-      xPoseRightMost = kp.position.x;
-    }
-
-    if(yPoseBottom < kp.position.y){
-      yPoseBottom = kp.position.y;
-    }else if(yPoseTop > kp.position.y){
-      yPoseTop = kp.position.y;
-    }
-
-    fill(kpFillColor); 
-    noStroke();
-    circle(kp.position.x, kp.position.y, kpSize);
-
-    fill(textColor);
-    textAlign(LEFT);
-    let xText = kp.position.x + kpSize + kpTextMargin;
-    let yText = kp.position.y;
-    if(kp.part.startsWith("right")){
-      textAlign(RIGHT);
-      xText = kp.position.x - (kpSize + kpTextMargin);
-    }
-    textStyle(BOLD);
-    text(kp.part, xText, yText);
-    textStyle(NORMAL);
-    yText += textSize();
-    text(int(kp.position.x) + ", " + int(kp.position.y), xText, yText);
-
-    yText += textSize();
-    text(nf(kp.score, 1, 2), xText, yText);
-    //console.log(keypoint);
-    // Only draw an ellipse is the pose probability is bigger than 0.2
-    //if (keypoint.score > 0.2) {
-
-    noFill();
-    stroke(kpOutlineColor);
-    circle(kp.position.x, kp.position.y, kpSize);
-  }
-
-  const boundingBoxExpandFraction = 0.1;
-  let boundingBoxWidth = xPoseRightMost - xPoseLeftMost;
-  let boundingBoxHeight = yPoseBottom - yPoseTop;
-  let boundingBoxXMargin = boundingBoxWidth * boundingBoxExpandFraction;
-  let boundingBoxYMargin = boundingBoxHeight * boundingBoxExpandFraction;
-  xPoseRightMost += boundingBoxXMargin / 2;
-  xPoseLeftMost -= boundingBoxXMargin / 2;
-  yPoseTop -= boundingBoxYMargin / 2;
-  yPoseBottom += boundingBoxYMargin / 2;
-  
-  noStroke();
-  fill(textColor);
-  textStyle(BOLD);
-  textAlign(LEFT, BOTTOM);
-  const strPoseNum = "Pose: " + (poseIndex + 1);
-  text(strPoseNum, xPoseLeftMost, yPoseTop - textSize() - 1);
-  const strWidth = textWidth(strPoseNum);
-  textStyle(NORMAL);
-  text("Confidence: " + nf(pose.pose.score, 0, 1), xPoseLeftMost, yPoseTop);
-
-  noFill();
-  stroke(kpFillColor);
-  rect(xPoseLeftMost, yPoseTop, boundingBoxWidth + boundingBoxXMargin, 
-    boundingBoxHeight + boundingBoxYMargin);
-}
-
-
-// A function to draw ellipses over the detected keypoints
-function drawKeypoints() {
-  // Loop through all the poses detected
-  for (let i = 0; i < poses.length; i += 1) {
-    // For each pose detected, loop through all the keypoints
-    const pose = poses[i].pose;
-    for (let j = 0; j < pose.keypoints.length; j += 1) {
-      // A keypoint is an object describing a body part (like rightArm or leftShoulder)
-      const keypoint = pose.keypoints[j];
-      // Only draw an ellipse is the pose probability is bigger than 0.2
-      if (keypoint.score > 0.2) {
-        fill(255, 0, 0, 150);
-        noStroke();
-        ellipse(keypoint.position.x, keypoint.position.y, 10, 10);
-      }
-    }
-  }
-}
-
-// A function to draw the skeletons
-function drawSkeleton() {
-  // Loop through all the skeletons detected
-  for (let i = 0; i < poses.length; i += 1) {
-    const skeleton = poses[i].skeleton;
-    // For every skeleton, loop through all body connections
-    for (let j = 0; j < skeleton.length; j += 1) {
-      const partA = skeleton[j][0];
-      const partB = skeleton[j][1];
-      stroke(255, 0, 0, 50);
-      line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
-    }
-  }
-}
-
-function generatePoseRatios(reference) {
-  // Extract relevant joints for elbow and knee angles
-  let pose = reference.keypoints;
-  let leftShoulder = pose.leftShoulder.position;
-  let leftElbow = pose.leftElbow.position;
-  let leftWrist = pose.leftWrist.position;
-  let rightShoulder = pose.rightShoulder.position;
-  let rightElbow = pose.rightElbow.position;
-  let rightWrist = pose.rightWrist.position;
-  let leftHip = pose.leftHip.position;
-  let leftKnee = pose.leftKnee.position;
-  let leftAnkle = pose.leftAnkle.position;
-  let rightHip = pose.rightHip.position;
-  let rightKnee = pose.rightKnee.position;
-  let rightAnkle = pose.rightAnkle.position;
-
-  // Calculate angles for elbows
-  let leftElbowAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
-  let rightElbowAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
-
-  // Calculate angles for knees
-  let leftKneeAngle = calculateAngle(leftHip, leftKnee, leftAnkle);
-  let rightKneeAngle = calculateAngle(rightHip, rightKnee, rightAnkle);
-
-  // Return the calculated angles
-  return {
-    leftElbowAngle: leftElbowAngle,
-    rightElbowAngle: rightElbowAngle,
-    leftKneeAngle: leftKneeAngle,
-    rightKneeAngle: rightKneeAngle
-  };
-}
-
-function calculateAngle(a, b, c) {
-  // Calculate vectors AB and BC
-  let AB = { x: b.x - a.x, y: b.y - a.y };
-  let BC = { x: c.x - b.x, y: c.y - b.y };
-  
-  // Dot product of AB and BC
-  let dotProduct = AB.x * BC.x + AB.y * BC.y;
-  
-  // Magnitudes of AB and BC
-  let magnitudeAB = Math.sqrt(AB.x * AB.y + AB.y * AB.y);
-  let magnitudeBC = Math.sqrt(BC.x * BC.x + BC.y * BC.y);
-  
-  // Calculate the angle in radians and then convert to degrees
-  let angleRadians = Math.acos(dotProduct / (magnitudeAB * magnitudeBC));
-  let angleDegrees = angleRadians * (180 / Math.PI);
-  
-  return angleDegrees;
-}
-
-
-// ----- Web serial library code -----
-/**
- * Callback function by serial.js when there is an error on web serial
- * 
- * @param {} eventSender 
- */
- function onSerialErrorOccurred(eventSender, error) {
-  console.log("onSerialErrorOccurred", error);
-  pHtmlMsg.html(error);
-}
-
-/**
- * Callback function by serial.js when web serial connection is opened
- * 
- * @param {} eventSender 
- */
-function onSerialConnectionOpened(eventSender) {
-  console.log("onSerialConnectionOpened");
-  pHtmlMsg.html("Serial connection opened successfully");
-}
-
-/**
- * Callback function by serial.js when web serial connection is closed
- * 
- * @param {} eventSender 
- */
-function onSerialConnectionClosed(eventSender) {
-  console.log("onSerialConnectionClosed");
-  pHtmlMsg.html("onSerialConnectionClosed");
-}
-
-/**
- * Callback function serial.js when new web serial data is received
- * 
- * @param {*} eventSender 
- * @param {String} newData new data received over serial
- */
-function onSerialDataReceived(eventSender, newData) {
-  console.log("onSerialDataReceived", newData);
-  pHtmlMsg.html("onSerialDataReceived: " + newData);
-}
-
-/**
- * Called automatically by the browser through p5.js when mouse clicked
- */
-function mouseClicked() {
-  // if (!serial.isOpen()) {
-  //   serial.connectAndOpen(null, serialOptions);
-  // }
-}
-
 
 // Jumping jack reference poses
 
@@ -802,4 +475,316 @@ const handsdown = {
   }
 }
 
+
+
+
+let video;
+let constraints = {
+  video: {
+    mandatory: {
+      minWidth: 640,
+      minHeight: 480
+    },
+    optional: [{ maxFrameRate: 10 }]
+  },
+  audio: false
+};
+
+// game state
+let scoreHtmlMsg;
+const scoreStub = "Current score: ";
+let score;
+
+// pose net variables
+let poseNet;
+let currentPoses;
+let poseNetModelReady;
+const poseNetOptions = {
+  architecture: 'MobileNetV1',
+  imageScaleFactor: 0.3,
+  outputStride: 16,
+  flipHorizontal: false,
+  minConfidence: 0.5,
+  maxPoseDetections: 5,
+  scoreThreshold: 0.8,
+  nmsRadius: 20,
+  // detectionType: 'multiple',
+  detectionType: 'single',
+  inputResolution: 513,
+  multiplier: 0.75,
+  quantBytes: 2,
+};
+
+function setup() {
+  poseNetModelReady = false;
+  // PoseNet and camera init
+  video = createCapture(constraints);
+  video.hide();
+  poseNet = ml5.poseNet(video, poseNetOptions, onPoseNetModelReady);
+  poseNet.on('pose', onPoseDetected);
+  createCanvas(640, 480);
+  scoreHtmlMsg = createP("test");
+  score = 0;
+  console.log(JSON.stringify(generatePoseAngles(handsup)));
+  console.log(JSON.stringify(generatePoseAngles(handsdown)));
+}
+
+/**
+ * Callback function called by ml5.js PoseNet when the PoseNet model is ready
+ * Will be called once and only once
+ */
+function onPoseNetModelReady() {
+  print("The PoseNet model is ready...");
+  poseNetModelReady = true;
+  scoreHtmlMsg.html("new pose");
+}
+
+/**
+ * Callback function called by ml5.js PosetNet when a pose has been detected
+ */
+function onPoseDetected(poses) {
+  currentPoses = poses;
+  score += 1;
+  scoreHtmlMsg.html(scoreStub + score);
+}
+
+function draw() {
+  image(video, 0, 0, width, height);
+
+  if(!poseNetModelReady){
+    background(100);
+    push();
+    textSize(32);
+    textAlign(CENTER);
+    fill(255);
+    noStroke();
+    text("Waiting for PoseNet model to load...", width/2, height/2);
+    pop();
+  }
+
+  // Iterate through all poses and print them out
+  if(currentPoses){
+    scoreHtmlMsg.html((JSON.stringify(generatePoseAngles(currentPoses[0].pose))));
+    for (let i = 0; i < currentPoses.length; i++) {
+      drawPose(currentPoses[i], i);
+    }
+  }
+}
+
+function drawPose(pose, poseIndex){
+  // Draw skeleton
+  const skeletonColor = color(255, 255, 255, 128);
+  stroke(skeletonColor); 
+  strokeWeight(2);
+  const skeleton = pose.skeleton;
+  for (let j = 0; j < skeleton.length; j += 1) {
+    const partA = skeleton[j][0];
+    const partB = skeleton[j][1];
+    line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
+  }
+  
+  // Draw keypoints with text
+  const kpFillColor = color(255, 255, 255, 200);
+  const textColor = color(255, 255, 255, 230);
+  const kpOutlineColor = color(0, 0, 0, 150);
+  strokeWeight(1);
+
+  const keypoints = pose.pose.keypoints;
+  const kpSize = 10;
+  const kpTextMargin = 2;
+  let xPoseLeftMost = width;
+  let xPoseRightMost = -1;
+  let yPoseTop = height;
+  let yPoseBottom = -1;
+  for (let j = 0; j < keypoints.length; j += 1) {
+    // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+    const kp = keypoints[j];
+
+    // check for maximum extents
+    if(xPoseLeftMost > kp.position.x){
+      xPoseLeftMost = kp.position.x;
+    }else if(xPoseRightMost < kp.position.x){
+      xPoseRightMost = kp.position.x;
+    }
+
+    if(yPoseBottom < kp.position.y){
+      yPoseBottom = kp.position.y;
+    }else if(yPoseTop > kp.position.y){
+      yPoseTop = kp.position.y;
+    }
+
+    fill(kpFillColor); 
+    noStroke();
+    circle(kp.position.x, kp.position.y, kpSize);
+
+    fill(textColor);
+    textAlign(LEFT);
+    let xText = kp.position.x + kpSize + kpTextMargin;
+    let yText = kp.position.y;
+    if(kp.part.startsWith("right")){
+      textAlign(RIGHT);
+      xText = kp.position.x - (kpSize + kpTextMargin);
+    }
+    textStyle(BOLD);
+    text(kp.part, xText, yText);
+    textStyle(NORMAL);
+    yText += textSize();
+    text(int(kp.position.x) + ", " + int(kp.position.y), xText, yText);
+
+    yText += textSize();
+    text(nf(kp.score, 1, 2), xText, yText);
+    //console.log(keypoint);
+    // Only draw an ellipse is the pose probability is bigger than 0.2
+    //if (keypoint.score > 0.2) {
+
+    noFill();
+    stroke(kpOutlineColor);
+    circle(kp.position.x, kp.position.y, kpSize);
+  }
+
+  const boundingBoxExpandFraction = 0.1;
+  let boundingBoxWidth = xPoseRightMost - xPoseLeftMost;
+  let boundingBoxHeight = yPoseBottom - yPoseTop;
+  let boundingBoxXMargin = boundingBoxWidth * boundingBoxExpandFraction;
+  let boundingBoxYMargin = boundingBoxHeight * boundingBoxExpandFraction;
+  xPoseRightMost += boundingBoxXMargin / 2;
+  xPoseLeftMost -= boundingBoxXMargin / 2;
+  yPoseTop -= boundingBoxYMargin / 2;
+  yPoseBottom += boundingBoxYMargin / 2;
+  
+  noStroke();
+  fill(textColor);
+  textStyle(BOLD);
+  textAlign(LEFT, BOTTOM);
+  const strPoseNum = "Pose: " + (poseIndex + 1);
+  text(strPoseNum, xPoseLeftMost, yPoseTop - textSize() - 1);
+  const strWidth = textWidth(strPoseNum);
+  textStyle(NORMAL);
+  text("Confidence: " + nf(pose.pose.score, 0, 1), xPoseLeftMost, yPoseTop);
+
+  noFill();
+  stroke(kpFillColor);
+  rect(xPoseLeftMost, yPoseTop, boundingBoxWidth + boundingBoxXMargin, 
+    boundingBoxHeight + boundingBoxYMargin);
+}
+
+
+// A function to draw ellipses over the detected keypoints
+function drawKeypoints() {
+  // Loop through all the poses detected
+  for (let i = 0; i < poses.length; i += 1) {
+    // For each pose detected, loop through all the keypoints
+    const pose = poses[i].pose;
+    for (let j = 0; j < pose.keypoints.length; j += 1) {
+      // A keypoint is an object describing a body part (like rightArm or leftShoulder)
+      const keypoint = pose.keypoints[j];
+      // Only draw an ellipse is the pose probability is bigger than 0.2
+      if (keypoint.score > 0.2) {
+        fill(255, 0, 0, 150);
+        noStroke();
+        ellipse(keypoint.position.x, keypoint.position.y, 10, 10);
+      }
+    }
+  }
+}
+
+// A function to draw the skeletons
+function drawSkeleton() {
+  // Loop through all the skeletons detected
+  for (let i = 0; i < poses.length; i += 1) {
+    const skeleton = poses[i].skeleton;
+    // For every skeleton, loop through all body connections
+    for (let j = 0; j < skeleton.length; j += 1) {
+      const partA = skeleton[j][0];
+      const partB = skeleton[j][1];
+      stroke(255, 0, 0, 50);
+      line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
+    }
+  }
+}
+
+function generatePoseAngles(keypoints) {
+  // Find keypoints for elbows and hips
+  const leftElbow = keypoints["leftElbow"];
+  const rightElbow = keypoints["rightElbow"];
+  const leftHip = keypoints["leftHip"];
+  const rightHip = keypoints["rightHip"];
+
+  // Calculate angles if all keypoints are found
+  if (leftElbow && rightElbow && leftHip && rightHip) {
+    // Calculate angles for elbows
+    const leftElbowAngle = Math.atan2(leftElbow.y - leftHip.y, leftElbow.x - leftHip.x);
+    const rightElbowAngle = Math.atan2(rightElbow.y - rightHip.y, rightElbow.x - rightHip.x);
+
+    // Calculate angles for hips
+    const leftHipAngle = Math.atan2(leftHip.y - keypoints["leftShoulder"].y, leftHip.x - keypoints["leftShoulder"].x);
+    const rightHipAngle = Math.atan2(rightHip.y - keypoints["rightShoulder"].y, rightHip.x - keypoints["rightShoulder"].x);
+
+    // Convert angles to degrees
+    const degrees = angle => angle * (180 / Math.PI);
+
+    return {
+      leftElbowAngle: degrees(leftElbowAngle),
+      rightElbowAngle: degrees(rightElbowAngle),
+      leftHipAngle: degrees(leftHipAngle),
+      rightHipAngle: degrees(rightHipAngle)
+    };
+  } else {
+    // Handle the case where any of the keypoints are not found
+    return null;
+  }
+}
+
+
+
+// ----- Web serial library code -----
+/**
+ * Callback function by serial.js when there is an error on web serial
+ * 
+ * @param {} eventSender 
+ */
+ function onSerialErrorOccurred(eventSender, error) {
+  console.log("onSerialErrorOccurred", error);
+  pHtmlMsg.html(error);
+}
+
+/**
+ * Callback function by serial.js when web serial connection is opened
+ * 
+ * @param {} eventSender 
+ */
+function onSerialConnectionOpened(eventSender) {
+  console.log("onSerialConnectionOpened");
+  pHtmlMsg.html("Serial connection opened successfully");
+}
+
+/**
+ * Callback function by serial.js when web serial connection is closed
+ * 
+ * @param {} eventSender 
+ */
+function onSerialConnectionClosed(eventSender) {
+  console.log("onSerialConnectionClosed");
+  pHtmlMsg.html("onSerialConnectionClosed");
+}
+
+/**
+ * Callback function serial.js when new web serial data is received
+ * 
+ * @param {*} eventSender 
+ * @param {String} newData new data received over serial
+ */
+function onSerialDataReceived(eventSender, newData) {
+  console.log("onSerialDataReceived", newData);
+  pHtmlMsg.html("onSerialDataReceived: " + newData);
+}
+
+/**
+ * Called automatically by the browser through p5.js when mouse clicked
+ */
+function mouseClicked() {
+  // if (!serial.isOpen()) {
+  //   serial.connectAndOpen(null, serialOptions);
+  // }
+}
 
