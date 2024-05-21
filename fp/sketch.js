@@ -17,467 +17,6 @@
 // const width = 640;
 // const height = 480;
 
-
-// Jumping jack reference poses
-
-const handsup = {
-  "score": 0.9306352909873513,
-  "keypoints": [
-    {
-      "score": 0.9800858497619629,
-      "part": "nose",
-      "position": {
-        "x": 309.5385077213035,
-        "y": 89.79581484071011
-      }
-    },
-    {
-      "score": 0.9572776556015015,
-      "part": "leftEye",
-      "position": {
-        "x": 322.0734283803502,
-        "y": 89.14966865272373
-      }
-    },
-    {
-      "score": 0.9482304453849792,
-      "part": "rightEye",
-      "position": {
-        "x": 303.72636490758754,
-        "y": 80.83841880471789
-      }
-    },
-    {
-      "score": 0.6805757284164429,
-      "part": "leftEar",
-      "position": {
-        "x": 320.4151340588521,
-        "y": 97.4711781067607
-      }
-    },
-    {
-      "score": 0.7744254469871521,
-      "part": "rightEar",
-      "position": {
-        "x": 286.9518140503405,
-        "y": 86.97744406614785
-      }
-    },
-    {
-      "score": 0.9773386120796204,
-      "part": "leftShoulder",
-      "position": {
-        "x": 345.0269789640078,
-        "y": 130.89385867582686
-      }
-    },
-    {
-      "score": 0.9907568097114563,
-      "part": "rightShoulder",
-      "position": {
-        "x": 276.5215945707685,
-        "y": 129.9616974708171
-      }
-    },
-    {
-      "score": 0.9791560173034668,
-      "part": "leftElbow",
-      "position": {
-        "x": 401.5279593263619,
-        "y": 91.2625395184825
-      }
-    },
-    {
-      "score": 0.9420381784439087,
-      "part": "rightElbow",
-      "position": {
-        "x": 221.8118084265564,
-        "y": 107.1918318336576
-      }
-    },
-    {
-      "score": 0.9240142703056335,
-      "part": "leftWrist",
-      "position": {
-        "x": 369.5342898832685,
-        "y": 52.50307788180933
-      }
-    },
-    {
-      "score": 0.9297556281089783,
-      "part": "rightWrist",
-      "position": {
-        "x": 242.51462943822958,
-        "y": 46.697033833900775
-      }
-    },
-    {
-      "score": 0.9946882724761963,
-      "part": "leftHip",
-      "position": {
-        "x": 333.9163956104086,
-        "y": 258.1368555447471
-      }
-    },
-    {
-      "score": 0.9961801767349243,
-      "part": "rightHip",
-      "position": {
-        "x": 291.21861320525295,
-        "y": 255.94870956955253
-      }
-    },
-    {
-      "score": 0.9951890707015991,
-      "part": "leftKnee",
-      "position": {
-        "x": 343.7131034168288,
-        "y": 346.70723644212063
-      }
-    },
-    {
-      "score": 0.9878189563751221,
-      "part": "rightKnee",
-      "position": {
-        "x": 272.90428547543775,
-        "y": 343.12279608463035
-      }
-    },
-    {
-      "score": 0.8580520153045654,
-      "part": "leftAnkle",
-      "position": {
-        "x": 360.5298896522374,
-        "y": 426.0619452213035
-      }
-    },
-    {
-      "score": 0.9052168130874634,
-      "part": "rightAnkle",
-      "position": {
-        "x": 261.1966690479086,
-        "y": 417.88006140564204
-      }
-    }
-  ],
-  "nose": {
-    "x": 309.5385077213035,
-    "y": 89.79581484071011,
-    "confidence": 0.9800858497619629
-  },
-  "leftEye": {
-    "x": 322.0734283803502,
-    "y": 89.14966865272373,
-    "confidence": 0.9572776556015015
-  },
-  "rightEye": {
-    "x": 303.72636490758754,
-    "y": 80.83841880471789,
-    "confidence": 0.9482304453849792
-  },
-  "leftEar": {
-    "x": 320.4151340588521,
-    "y": 97.4711781067607,
-    "confidence": 0.6805757284164429
-  },
-  "rightEar": {
-    "x": 286.9518140503405,
-    "y": 86.97744406614785,
-    "confidence": 0.7744254469871521
-  },
-  "leftShoulder": {
-    "x": 345.0269789640078,
-    "y": 130.89385867582686,
-    "confidence": 0.9773386120796204
-  },
-  "rightShoulder": {
-    "x": 276.5215945707685,
-    "y": 129.9616974708171,
-    "confidence": 0.9907568097114563
-  },
-  "leftElbow": {
-    "x": 401.5279593263619,
-    "y": 91.2625395184825,
-    "confidence": 0.9791560173034668
-  },
-  "rightElbow": {
-    "x": 221.8118084265564,
-    "y": 107.1918318336576,
-    "confidence": 0.9420381784439087
-  },
-  "leftWrist": {
-    "x": 369.5342898832685,
-    "y": 52.50307788180933,
-    "confidence": 0.9240142703056335
-  },
-  "rightWrist": {
-    "x": 242.51462943822958,
-    "y": 46.697033833900775,
-    "confidence": 0.9297556281089783
-  },
-  "leftHip": {
-    "x": 333.9163956104086,
-    "y": 258.1368555447471,
-    "confidence": 0.9946882724761963
-  },
-  "rightHip": {
-    "x": 291.21861320525295,
-    "y": 255.94870956955253,
-    "confidence": 0.9961801767349243
-  },
-  "leftKnee": {
-    "x": 343.7131034168288,
-    "y": 346.70723644212063,
-    "confidence": 0.9951890707015991
-  },
-  "rightKnee": {
-    "x": 272.90428547543775,
-    "y": 343.12279608463035,
-    "confidence": 0.9878189563751221
-  },
-  "leftAnkle": {
-    "x": 360.5298896522374,
-    "y": 426.0619452213035,
-    "confidence": 0.8580520153045654
-  },
-  "rightAnkle": {
-    "x": 261.1966690479086,
-    "y": 417.88006140564204,
-    "confidence": 0.9052168130874634
-  }
-}
-
-
-const handsdown = {
-  "score": 0.9742184842334074,
-  "keypoints": [
-    {
-      "score": 0.9990899562835693,
-      "part": "nose",
-      "position": {
-        "x": 327.19335177529183,
-        "y": 60.78056602626458
-      }
-    },
-    {
-      "score": 0.996737539768219,
-      "part": "leftEye",
-      "position": {
-        "x": 334.6422437378405,
-        "y": 53.85543645124028
-      }
-    },
-    {
-      "score": 0.9957283139228821,
-      "part": "rightEye",
-      "position": {
-        "x": 317.7151287390564,
-        "y": 56.427396187986375
-      }
-    },
-    {
-      "score": 0.8753852844238281,
-      "part": "leftEar",
-      "position": {
-        "x": 350.13918865515564,
-        "y": 63.88897966318095
-      }
-    },
-    {
-      "score": 0.8426753878593445,
-      "part": "rightEar",
-      "position": {
-        "x": 305.6652024562257,
-        "y": 59.67944430933852
-      }
-    },
-    {
-      "score": 0.9982958436012268,
-      "part": "leftShoulder",
-      "position": {
-        "x": 369.8227368069066,
-        "y": 120.03687758390078
-      }
-    },
-    {
-      "score": 0.999189555644989,
-      "part": "rightShoulder",
-      "position": {
-        "x": 288.524725650535,
-        "y": 112.59780824416342
-      }
-    },
-    {
-      "score": 0.9926909804344177,
-      "part": "leftElbow",
-      "position": {
-        "x": 394.9892844114786,
-        "y": 176.0158149927043
-      }
-    },
-    {
-      "score": 0.9939461946487427,
-      "part": "rightElbow",
-      "position": {
-        "x": 249.4148794686284,
-        "y": 166.58898498297665
-      }
-    },
-    {
-      "score": 0.988639235496521,
-      "part": "leftWrist",
-      "position": {
-        "x": 421.5639819430934,
-        "y": 216.38253891050584
-      }
-    },
-    {
-      "score": 0.9682605862617493,
-      "part": "rightWrist",
-      "position": {
-        "x": 215.8680576665856,
-        "y": 222.3485568154183
-      }
-    },
-    {
-      "score": 0.9991025924682617,
-      "part": "leftHip",
-      "position": {
-        "x": 349.15882630107006,
-        "y": 239.09263284289887
-      }
-    },
-    {
-      "score": 0.995391845703125,
-      "part": "rightHip",
-      "position": {
-        "x": 297.305219479572,
-        "y": 240.6779699659533
-      }
-    },
-    {
-      "score": 0.9965837597846985,
-      "part": "leftKnee",
-      "position": {
-        "x": 357.85414640077823,
-        "y": 331.8726440904669
-      }
-    },
-    {
-      "score": 0.9808268547058105,
-      "part": "rightKnee",
-      "position": {
-        "x": 292.10080632903697,
-        "y": 331.3313168774319
-      }
-    },
-    {
-      "score": 0.9749730229377747,
-      "part": "leftAnkle",
-      "position": {
-        "x": 359.4170643847276,
-        "y": 409.9399243069066
-      }
-    },
-    {
-      "score": 0.9641972780227661,
-      "part": "rightAnkle",
-      "position": {
-        "x": 287.03617081104085,
-        "y": 419.6209265564202
-      }
-    }
-  ],
-  "nose": {
-    "x": 327.19335177529183,
-    "y": 60.78056602626458,
-    "confidence": 0.9990899562835693
-  },
-  "leftEye": {
-    "x": 334.6422437378405,
-    "y": 53.85543645124028,
-    "confidence": 0.996737539768219
-  },
-  "rightEye": {
-    "x": 317.7151287390564,
-    "y": 56.427396187986375,
-    "confidence": 0.9957283139228821
-  },
-  "leftEar": {
-    "x": 350.13918865515564,
-    "y": 63.88897966318095,
-    "confidence": 0.8753852844238281
-  },
-  "rightEar": {
-    "x": 305.6652024562257,
-    "y": 59.67944430933852,
-    "confidence": 0.8426753878593445
-  },
-  "leftShoulder": {
-    "x": 369.8227368069066,
-    "y": 120.03687758390078,
-    "confidence": 0.9982958436012268
-  },
-  "rightShoulder": {
-    "x": 288.524725650535,
-    "y": 112.59780824416342,
-    "confidence": 0.999189555644989
-  },
-  "leftElbow": {
-    "x": 394.9892844114786,
-    "y": 176.0158149927043,
-    "confidence": 0.9926909804344177
-  },
-  "rightElbow": {
-    "x": 249.4148794686284,
-    "y": 166.58898498297665,
-    "confidence": 0.9939461946487427
-  },
-  "leftWrist": {
-    "x": 421.5639819430934,
-    "y": 216.38253891050584,
-    "confidence": 0.988639235496521
-  },
-  "rightWrist": {
-    "x": 215.8680576665856,
-    "y": 222.3485568154183,
-    "confidence": 0.9682605862617493
-  },
-  "leftHip": {
-    "x": 349.15882630107006,
-    "y": 239.09263284289887,
-    "confidence": 0.9991025924682617
-  },
-  "rightHip": {
-    "x": 297.305219479572,
-    "y": 240.6779699659533,
-    "confidence": 0.995391845703125
-  },
-  "leftKnee": {
-    "x": 357.85414640077823,
-    "y": 331.8726440904669,
-    "confidence": 0.9965837597846985
-  },
-  "rightKnee": {
-    "x": 292.10080632903697,
-    "y": 331.3313168774319,
-    "confidence": 0.9808268547058105
-  },
-  "leftAnkle": {
-    "x": 359.4170643847276,
-    "y": 409.9399243069066,
-    "confidence": 0.9749730229377747
-  },
-  "rightAnkle": {
-    "x": 287.03617081104085,
-    "y": 419.6209265564202,
-    "confidence": 0.9641972780227661
-  }
-}
-
-
-
-
 let video;
 let constraints = {
   video: {
@@ -506,7 +45,7 @@ const poseNetOptions = {
   flipHorizontal: false,
   minConfidence: 0.5,
   maxPoseDetections: 5,
-  scoreThreshold: 0.8,
+  scoreThreshold: 0.5,
   nmsRadius: 20,
   // detectionType: 'multiple',
   detectionType: 'single',
@@ -525,9 +64,13 @@ function setup() {
   createCanvas(640, 480);
   scoreHtmlMsg = createP("test");
   score = 0;
-  console.log(JSON.stringify(generatePoseAngles(handsup)));
-  console.log(JSON.stringify(generatePoseAngles(handsdown)));
+  // console.log("handsup: " + JSON.stringify(generatePoseAngles(handsup)));
+  // console.log("handsdown: " + JSON.stringify(generatePoseAngles(handsdown)));
 }
+
+
+//handsup: {"leftElbowAngle":-72.63918909170312,"rightElbowAngle":-112.21609317291504,"leftHipAngle":90.34881337944101,"rightHipAngle":90.97220672165206} sketch.js:528:11
+//handsdown: {"leftElbowAngle":61.76252831580433,"rightElbowAngle":123.50516622898327,"leftHipAngle":93.23373830456356,"rightHipAngle":89.06335303251583} sketch.js:529:11
 
 /**
  * Callback function called by ml5.js PoseNet when the PoseNet model is ready
@@ -564,7 +107,7 @@ function draw() {
 
   // Iterate through all poses and print them out
   if(currentPoses){
-    scoreHtmlMsg.html((JSON.stringify(generatePoseAngles(currentPoses[0].pose))));
+    // scoreHtmlMsg.html((JSON.stringify(generatePoseAngles(currentPoses[0].pose))));
     for (let i = 0; i < currentPoses.length; i++) {
       drawPose(currentPoses[i], i);
     }
@@ -704,21 +247,25 @@ function drawSkeleton() {
 }
 
 function generatePoseAngles(keypoints) {
-  // Find keypoints for elbows and hips
+  // Find keypoints for elbows, hips, and shoulders
   const leftElbow = keypoints["leftElbow"];
   const rightElbow = keypoints["rightElbow"];
-  const leftHip = keypoints["leftHip"];
-  const rightHip = keypoints["rightHip"];
+  const leftKnee = keypoints["leftKnee"];
+  const rightKnee = keypoints["rightKnee"];
+  const leftShoulder = keypoints["leftShoulder"];
+  const rightShoulder = keypoints["rightShoulder"];
+  const leftWrist = keypoints["leftWrist"];
+  const rightWrist = keypoints["rightWrist"];
 
-  // Calculate angles if all keypoints are found
-  if (leftElbow && rightElbow && leftHip && rightHip) {
+  // Check if all required keypoints are present
+  if (leftElbow && rightElbow && leftKnee && rightKnee && leftShoulder && rightShoulder && leftWrist && rightWrist) {
     // Calculate angles for elbows
-    const leftElbowAngle = Math.atan2(leftElbow.y - leftHip.y, leftElbow.x - leftHip.x);
-    const rightElbowAngle = Math.atan2(rightElbow.y - rightHip.y, rightElbow.x - rightHip.x);
+    const leftElbowAngle = Math.atan2(leftWrist.y - leftShoulder.y, leftWrist.x - leftShoulder.x);
+    const rightElbowAngle = Math.atan2(rightWrist.y - rightShoulder.y, rightWrist.x - rightShoulder.x);
 
     // Calculate angles for hips
-    const leftHipAngle = Math.atan2(leftHip.y - keypoints["leftShoulder"].y, leftHip.x - keypoints["leftShoulder"].x);
-    const rightHipAngle = Math.atan2(rightHip.y - keypoints["rightShoulder"].y, rightHip.x - keypoints["rightShoulder"].x);
+    const leftHipAngle = Math.atan2(leftKnee.y - leftShoulder.y, leftKnee.x - leftShoulder.x);
+    const rightHipAngle = Math.atan2(rightKnee.y - rightShoulder.y, rightKnee.x - rightShoulder.x);
 
     // Convert angles to degrees
     const degrees = angle => angle * (180 / Math.PI);
@@ -730,12 +277,10 @@ function generatePoseAngles(keypoints) {
       rightHipAngle: degrees(rightHipAngle)
     };
   } else {
-    // Handle the case where any of the keypoints are not found
+    // Handle the case where any of the required keypoints are missing
     return null;
   }
 }
-
-
 
 // ----- Web serial library code -----
 /**
