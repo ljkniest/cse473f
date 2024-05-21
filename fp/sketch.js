@@ -42,7 +42,7 @@ const poseNetOptions = {
   architecture: 'MobileNetV1',
   imageScaleFactor: 0.3,
   outputStride: 16,
-  flipHorizontal: false,
+  flipHorizontal: true,
   minConfidence: 0.5,
   maxPoseDetections: 5,
   scoreThreshold: 0.5,
