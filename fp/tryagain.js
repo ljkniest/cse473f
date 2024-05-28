@@ -24,6 +24,9 @@ let constraints = {
   audio: false
 };
 
+let serialOptions = { baudRate: 115200  };
+let serial;
+
 // game state
 let scoreHtmlMsg;
 const scoreStub = "Current score: ";
@@ -53,6 +56,21 @@ const poseNetOptions = {
 
 function setup() {
   poseNetModelReady = false;
+
+    // Setup Web Serial using serial.js
+    serial = new Serial();
+    serial.on(SerialEvents.CONNECTION_OPENED, onSerialConnectionOpened);
+    serial.on(SerialEvents.CONNECTION_CLOSED, onSerialConnectionClosed);
+    serial.on(SerialEvents.DATA_RECEIVED, onSerialDataReceived);
+    serial.on(SerialEvents.ERROR_OCCURRED, onSerialErrorOccurred);
+  
+    // If we have previously approved ports, attempt to connect with them
+    serial.autoConnectAndOpenPreviouslyApprovedPort(serialOptions);
+  
+    // Add in a lil <p> element to provide messages. This is optional
+    pHtmlMsg = createP("Click anywhere on this page to open the serial connection dialog");
+    pHtmlMsg.style('color', 'white');
+
   // PoseNet and camera init
   video = createCapture(constraints);
   video.hide();
@@ -114,7 +132,14 @@ function draw() {
         if (isPoseDown(pose.pose)) {
           console.log("up to down");
           lastPoseUp = false;
-          score++
+          score++;
+
+          // If serial is open, transmit score
+          if(serial.isOpen()){
+            serial.writeLine(1); 
+            console.log("sent serial1")
+          }
+          
         } 
       } else if (!lastPoseUp) {
         if(isPoseUp(pose.pose)) {
@@ -397,8 +422,8 @@ function onSerialDataReceived(eventSender, newData) {
  * Called automatically by the browser through p5.js when mouse clicked
  */
 function mouseClicked() {
-  // if (!serial.isOpen()) {
-  //   serial.connectAndOpen(null, serialOptions);
-  // }
+  if (!serial.isOpen()) {
+    serial.connectAndOpen(null, serialOptions);
+  }
 }
 
